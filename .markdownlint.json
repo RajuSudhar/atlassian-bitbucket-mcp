@@ -1,0 +1,81 @@
+{
+  "default": true,
+  "MD003": {
+    "style": "atx"
+  },
+  "MD004": {
+    "style": "dash"
+  },
+  "MD007": {
+    "indent": 2
+  },
+  "MD010": {
+    "code_blocks": false
+  },
+  "MD012": {
+    "maximum": 1
+  },
+  "MD013": {
+    "line_length": 1000,
+    "heading_line_length": 80,
+    "code_block_line_length": 120,
+    "code_blocks": true,
+    "tables": false,
+    "headings": true,
+    "strict": false,
+    "stern": false
+  },
+  "MD022": {
+    "lines_above": 1,
+    "lines_below": 1
+  },
+  "MD024": {
+    "siblings_only": true
+  },
+  "MD025": {
+    "front_matter_title": ""
+  },
+  "MD026": {
+    "punctuation": ".,;:!?"
+  },
+  "MD029": {
+    "style": "ordered"
+  },
+  "MD030": {
+    "ul_single": 1,
+    "ol_single": 1,
+    "ul_multi": 1,
+    "ol_multi": 1
+  },
+  "MD031": {
+    "list_items": true
+  },
+  "MD032": true,
+  "MD033": {
+    "allowed_elements": ["br", "details", "summary", "img", "a"]
+  },
+  "MD034": true,
+  "MD035": {
+    "style": "---"
+  },
+  "MD036": true,
+  "MD040": true,
+  "MD041": false,
+  "MD044": {
+    "names": [],
+    "code_blocks": false
+  },
+  "MD046": {
+    "style": "fenced"
+  },
+  "MD047": true,
+  "MD048": {
+    "style": "backtick"
+  },
+  "MD049": {
+    "style": "underscore"
+  },
+  "MD050": {
+    "style": "asterisk"
+  }
+}
