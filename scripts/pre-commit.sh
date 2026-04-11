@@ -4,7 +4,7 @@
 # Runs code quality checks before allowing commit
 
 # Skip checks if TypeScript is not installed yet
-if ! command -v tsc &> /dev/null; then
+if ! command -v tsc > /dev/null 2>&1; then
   echo "Skipping pre-commit checks (TypeScript not installed yet)"
   exit 0
 fi

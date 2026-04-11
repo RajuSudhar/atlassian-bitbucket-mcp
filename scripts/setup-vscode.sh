@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # VSCode Workspace Setup Script
 # Configures VSCode settings and installs recommended extensions
@@ -8,7 +8,7 @@ echo "====================="
 echo ""
 
 # Check if VSCode is installed
-if ! command -v code &> /dev/null; then
+if ! command -v code > /dev/null 2>&1; then
   echo "WARNING: VSCode 'code' command not found in PATH"
   echo "Please install VSCode command line tools:"
   echo "  1. Open VSCode"

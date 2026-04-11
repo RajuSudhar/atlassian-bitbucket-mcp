@@ -152,10 +152,14 @@ type Entry<T> = { data: T; timestamp: number; ttl: number };
 import type { LogLevel, LogContext } from '@types/logger';
 
 export function log(level: LogLevel, message: string, context?: LogContext): void {
-  // Current implementation: Structured console logging
-  const timestamp = new Date().toISOString();
-  const contextStr = context ? JSON.stringify(context) : '';
-  console.log(`[${timestamp}] [${level.toUpperCase()}] ${message} ${contextStr}`);
+  // Structured JSON to stderr — stdout reserved for MCP stdio transport
+  const entry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    ...(context ? redact(context) : {}),
+  };
+  process.stderr.write(JSON.stringify(entry) + '\n');
 }
 ```
 
