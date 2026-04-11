@@ -28,7 +28,7 @@ Branches must follow one of these formats:
 | `feature`  | New features                 | `feature/add-user-authentication` |
 | `release`  | Release preparation          | `release/v1.0.0`                  |
 | `fix`      | Bug fixes                    | `fix/memory-leak-in-cache`        |
-| `docs`     | Documentation changes        | `doc/update-api-guide`            |
+| `doc`      | Documentation changes        | `doc/update-api-guide`            |
 | `test`     | Test additions/modifications | `test/add-integration-tests`      |
 | `chore`    | Maintenance tasks            | `chore/update-dependencies`       |
 | `refactor` | Code refactoring             | `refactor/extract-api-client`     |
