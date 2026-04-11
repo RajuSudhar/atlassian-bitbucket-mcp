@@ -2,7 +2,13 @@
   "name": "atlassian-bitbucket-mcp",
   "version": "0.1.0",
   "description": "Model Context Protocol (MCP) server for Atlassian Bitbucket integration",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
+  "bin": {
+    "atlassian-bitbucket-mcp": "dist/src/index.js"
+  },
+  "files": [
+    "dist/"
+  ],
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
@@ -13,7 +19,7 @@
     "clean": "rm -rf dist",
     "rebuild": "pnpm run clean && pnpm run build",
     "prepare": "husky",
-    "postinstall": "pnpm run build",
+    "postinstall": "npm run build",
     "dev:setup": "pnpm install && pnpm run build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -39,7 +45,7 @@
     "llm"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
     "url": ""
@@ -49,24 +55,24 @@
   },
   "homepage": "",
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@types/node": "^24.10.1",
-    "@typescript-eslint/eslint-plugin": "^8.48.0",
-    "@typescript-eslint/parser": "^8.48.0",
-    "eslint": "^9.39.1",
-    "eslint-import-resolver-typescript": "^4.4.4",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-unused-imports": "^4.3.0",
-    "husky": "^9.1.7",
-    "markdownlint-cli2": "^0.19.1",
-    "markdownlint-cli2-formatter-pretty": "^0.0.9",
-    "prettier": "^3.7.2",
-    "prettier-plugin-sh": "^0.18.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.48.0"
+    "@eslint/js": "9.39.1",
+    "@types/node": "24.10.1",
+    "@typescript-eslint/eslint-plugin": "8.48.0",
+    "@typescript-eslint/parser": "8.48.0",
+    "eslint": "9.39.1",
+    "eslint-import-resolver-typescript": "4.4.4",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-unused-imports": "4.3.0",
+    "husky": "9.1.7",
+    "markdownlint-cli2": "0.19.1",
+    "markdownlint-cli2-formatter-pretty": "0.0.9",
+    "prettier": "3.7.2",
+    "prettier-plugin-sh": "0.18.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.48.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.23.0",
-    "zod": "^4.1.13"
+    "@modelcontextprotocol/sdk": "1.23.0",
+    "zod": "4.1.13"
   }
 }
