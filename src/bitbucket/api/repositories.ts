@@ -15,7 +15,7 @@ export class RepositoryApi {
   constructor(private readonly client: BitbucketClient) {}
 
   async listProjects(limit = 25, start = 0): Promise<BitbucketPagedResponse<BitbucketProject>> {
-    return this.client.request<BitbucketPagedResponse<BitbucketProject>>('/projects', {
+    return this.client.requestJson<BitbucketPagedResponse<BitbucketProject>>('/projects', {
       queryParams: { limit, start },
     });
   }
@@ -25,14 +25,14 @@ export class RepositoryApi {
     limit = 25,
     start = 0
   ): Promise<BitbucketPagedResponse<BitbucketRepository>> {
-    return this.client.request<BitbucketPagedResponse<BitbucketRepository>>(
+    return this.client.requestJson<BitbucketPagedResponse<BitbucketRepository>>(
       `/projects/${project}/repos`,
       { queryParams: { limit, start } }
     );
   }
 
   async getRepository(project: string, repo: string): Promise<BitbucketRepository> {
-    return this.client.request<BitbucketRepository>(`/projects/${project}/repos/${repo}`);
+    return this.client.requestJson<BitbucketRepository>(`/projects/${project}/repos/${repo}`);
   }
 
   async getBranches(
@@ -41,7 +41,7 @@ export class RepositoryApi {
     limit = 25,
     start = 0
   ): Promise<BitbucketPagedResponse<BitbucketBranch>> {
-    return this.client.request<BitbucketPagedResponse<BitbucketBranch>>(
+    return this.client.requestJson<BitbucketPagedResponse<BitbucketBranch>>(
       `/projects/${project}/repos/${repo}/branches`,
       { queryParams: { limit, start } }
     );
@@ -53,7 +53,7 @@ export class RepositoryApi {
     limit = 25,
     start = 0
   ): Promise<BitbucketPagedResponse<BitbucketCommit>> {
-    return this.client.request<BitbucketPagedResponse<BitbucketCommit>>(
+    return this.client.requestJson<BitbucketPagedResponse<BitbucketCommit>>(
       `/projects/${project}/repos/${repo}/commits`,
       { queryParams: { limit, start } }
     );
@@ -66,8 +66,8 @@ export class RepositoryApi {
     ref?: string
   ): Promise<unknown> {
     const queryParams: Record<string, string | undefined> = {};
-    if (ref) queryParams['at'] = ref;
-    return this.client.request<unknown>(`/projects/${project}/repos/${repo}/browse/${path}`, {
+    if (ref !== undefined && ref.length > 0) queryParams['at'] = ref;
+    return this.client.requestJson<unknown>(`/projects/${project}/repos/${repo}/browse/${path}`, {
       queryParams,
     });
   }

@@ -14,7 +14,7 @@ export class SearchApi {
     limit = 25,
     start = 0
   ): Promise<BitbucketSearchResult> {
-    return this.client.request<BitbucketSearchResult>(`/projects/${project}/search/code`, {
+    return this.client.requestJson<BitbucketSearchResult>(`/projects/${project}/search/code`, {
       queryParams: { query, limit, start },
     });
   }
@@ -26,7 +26,7 @@ export class SearchApi {
     limit = 25,
     start = 0
   ): Promise<BitbucketPagedResponse<{ readonly id: string; readonly message: string }>> {
-    return this.client.request(`/projects/${project}/repos/${repo}/commits`, {
+    return this.client.requestJson(`/projects/${project}/repos/${repo}/commits`, {
       queryParams: { query, limit, start },
     });
   }

@@ -7,6 +7,13 @@ import { z } from 'zod';
 import { cacheKey } from '../cache.js';
 import { log } from '../logger.js';
 import { requirePermission } from '../permissions.js';
+import {
+  getFileContentShape,
+  listProjectsShape,
+  projectListShape,
+  repoPaginatedShape,
+  repoRefShape,
+} from './schemas.js';
 
 import type { RepositoryApi } from '../bitbucket/api/repositories.js';
 import type { Cache } from '../cache.js';
@@ -28,12 +35,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
     bitbucket_list_projects: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = z
-          .object({
-            limit: z.coerce.number().int().positive().optional(),
-            start: z.coerce.number().int().nonnegative().optional(),
-          })
-          .parse(args);
+        const input = z.object(listProjectsShape).parse(args);
         requirePermission(config, 'read_project');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -46,7 +48,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
           `${input.limit ?? 25}:${input.start ?? 0}`
         );
         const cached = cache.get(ck);
-        if (cached) {
+        if (cached !== null) {
           log('info', 'tool end (cached)', {
             toolName: 'bitbucket_list_projects',
             durationMs: Date.now() - start,
@@ -55,7 +57,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
         }
 
         const result = await repoApi.listProjects(input.limit, input.start);
-        cache.set(ck, result, config.cache.ttlRepos as number);
+        cache.set(ck, result, config.cache.ttlRepos);
         log('info', 'tool end', {
           toolName: 'bitbucket_list_projects',
           durationMs: Date.now() - start,
@@ -77,13 +79,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
     bitbucket_list_repositories: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = z
-          .object({
-            project: z.string().min(1),
-            limit: z.coerce.number().int().positive().optional(),
-            start: z.coerce.number().int().nonnegative().optional(),
-          })
-          .parse(args);
+        const input = z.object(projectListShape).parse(args);
         requirePermission(config, 'read_repo');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -96,7 +92,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
           `${input.project}:${input.limit ?? 25}:${input.start ?? 0}`
         );
         const cached = cache.get(ck);
-        if (cached) {
+        if (cached !== null) {
           log('info', 'tool end (cached)', {
             toolName: 'bitbucket_list_repositories',
             durationMs: Date.now() - start,
@@ -105,7 +101,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
         }
 
         const result = await repoApi.listRepositories(input.project, input.limit, input.start);
-        cache.set(ck, result, config.cache.ttlRepos as number);
+        cache.set(ck, result, config.cache.ttlRepos);
         log('info', 'tool end', {
           toolName: 'bitbucket_list_repositories',
           durationMs: Date.now() - start,
@@ -124,12 +120,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
     bitbucket_get_repository: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = z
-          .object({
-            project: z.string().min(1),
-            repo: z.string().min(1),
-          })
-          .parse(args);
+        const input = z.object(repoRefShape).parse(args);
         requirePermission(config, 'read_repo');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -138,7 +129,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
 
         const ck = cacheKey(config.bitbucketUrl, 'repo', `${input.project}/${input.repo}`);
         const cached = cache.get(ck);
-        if (cached) {
+        if (cached !== null) {
           log('info', 'tool end (cached)', {
             toolName: 'bitbucket_get_repository',
             durationMs: Date.now() - start,
@@ -147,7 +138,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
         }
 
         const result = await repoApi.getRepository(input.project, input.repo);
-        cache.set(ck, result, config.cache.ttlRepoMeta as number);
+        cache.set(ck, result, config.cache.ttlRepoMeta);
         log('info', 'tool end', {
           toolName: 'bitbucket_get_repository',
           durationMs: Date.now() - start,
@@ -166,14 +157,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
     bitbucket_get_branches: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = z
-          .object({
-            project: z.string().min(1),
-            repo: z.string().min(1),
-            limit: z.coerce.number().int().positive().optional(),
-            start: z.coerce.number().int().nonnegative().optional(),
-          })
-          .parse(args);
+        const input = z.object(repoPaginatedShape).parse(args);
         requirePermission(config, 'read_repo');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -203,14 +187,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
     bitbucket_get_commits: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = z
-          .object({
-            project: z.string().min(1),
-            repo: z.string().min(1),
-            limit: z.coerce.number().int().positive().optional(),
-            start: z.coerce.number().int().nonnegative().optional(),
-          })
-          .parse(args);
+        const input = z.object(repoPaginatedShape).parse(args);
         requirePermission(config, 'read_repo');
         log('info', 'tool start', { operation: 'tool_execute', toolName: 'bitbucket_get_commits' });
         const result = await repoApi.getCommits(
@@ -237,14 +214,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
     bitbucket_get_file_content: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = z
-          .object({
-            project: z.string().min(1),
-            repo: z.string().min(1),
-            path: z.string().min(1),
-            ref: z.string().optional(),
-          })
-          .parse(args);
+        const input = z.object(getFileContentShape).parse(args);
         requirePermission(config, 'read_repo');
         log('info', 'tool start', {
           operation: 'tool_execute',

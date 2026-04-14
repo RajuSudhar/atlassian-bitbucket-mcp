@@ -27,20 +27,20 @@ export class PullRequestApi {
     limit = 25,
     start = 0
   ): Promise<BitbucketPagedResponse<PullRequest>> {
-    return this.client.request<BitbucketPagedResponse<PullRequest>>(
+    return this.client.requestJson<BitbucketPagedResponse<PullRequest>>(
       `/projects/${project}/repos/${repo}/pull-requests`,
       { queryParams: { state, limit, start } }
     );
   }
 
   async get(project: string, repo: string, prId: number): Promise<PullRequest> {
-    return this.client.request<PullRequest>(
+    return this.client.requestJson<PullRequest>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}`
     );
   }
 
   async getDiff(project: string, repo: string, prId: number): Promise<BitbucketDiff> {
-    return this.client.request<BitbucketDiff>(
+    return this.client.requestJson<BitbucketDiff>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/diff`
     );
   }
@@ -52,7 +52,7 @@ export class PullRequestApi {
     limit = 25,
     start = 0
   ): Promise<BitbucketPagedResponse<BitbucketCommit>> {
-    return this.client.request<BitbucketPagedResponse<BitbucketCommit>>(
+    return this.client.requestJson<BitbucketPagedResponse<BitbucketCommit>>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/commits`,
       { queryParams: { limit, start } }
     );
@@ -65,7 +65,7 @@ export class PullRequestApi {
     limit = 25,
     start = 0
   ): Promise<BitbucketPagedResponse<BitbucketActivity>> {
-    return this.client.request<BitbucketPagedResponse<BitbucketActivity>>(
+    return this.client.requestJson<BitbucketPagedResponse<BitbucketActivity>>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/activities`,
       { queryParams: { limit, start } }
     );
@@ -77,7 +77,7 @@ export class PullRequestApi {
     prId: number,
     text: string
   ): Promise<BitbucketComment> {
-    return this.client.request<BitbucketComment>(
+    return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments`,
       { method: 'POST', body: { text } }
     );
@@ -90,7 +90,7 @@ export class PullRequestApi {
     text: string,
     anchor: { path: string; line: number; lineType: string; fileType?: string }
   ): Promise<BitbucketComment> {
-    return this.client.request<BitbucketComment>(
+    return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments`,
       { method: 'POST', body: { text, anchor } }
     );
@@ -103,7 +103,7 @@ export class PullRequestApi {
     commentId: number,
     text: string
   ): Promise<BitbucketComment> {
-    return this.client.request<BitbucketComment>(
+    return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments`,
       { method: 'POST', body: { text, parent: { id: commentId } } }
     );
@@ -116,7 +116,7 @@ export class PullRequestApi {
     commentId: number,
     version: number
   ): Promise<BitbucketComment> {
-    return this.client.request<BitbucketComment>(
+    return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments/${commentId}`,
       { method: 'PUT', body: { state: 'RESOLVED', version } }
     );
@@ -130,14 +130,14 @@ export class PullRequestApi {
     text: string,
     version: number
   ): Promise<BitbucketComment> {
-    return this.client.request<BitbucketComment>(
+    return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments/${commentId}`,
       { method: 'PUT', body: { text, version } }
     );
   }
 
   async approve(project: string, repo: string, prId: number): Promise<BitbucketComment> {
-    return this.client.request<BitbucketComment>(
+    return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/approve`,
       { method: 'POST' }
     );

@@ -6,19 +6,20 @@ import { z } from 'zod';
 
 import { log } from '../logger.js';
 import { requirePermission } from '../permissions.js';
+import {
+  addPrCommentShape,
+  addPrInlineCommentShape,
+  listPullRequestsShape,
+  prPaginatedShape,
+  prRefShape,
+  replyToCommentShape,
+  resolveCommentShape,
+  updateCommentShape,
+} from './schemas.js';
 
 import type { PullRequestApi } from '../bitbucket/api/pull-requests.js';
 import type { Cache } from '../cache.js';
 import type { Config, McpToolResult } from '@types';
-
-const projectRepoSchema = z.object({
-  project: z.string().min(1),
-  repo: z.string().min(1),
-});
-
-const prIdSchema = projectRepoSchema.extend({
-  prId: z.coerce.number().int().positive(),
-});
 
 function textResult(data: unknown): McpToolResult {
   return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
@@ -31,18 +32,22 @@ function errorResult(code: string, message: string): McpToolResult {
   };
 }
 
+function invalidatePrCache(
+  cache: Cache,
+  config: Config,
+  project: string,
+  repo: string,
+  prId: number
+): void {
+  cache.invalidate(`${config.bitbucketUrl}:pr:${project}/${repo}/${prId}`);
+}
+
 export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cache) {
   return {
     bitbucket_list_pull_requests: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = projectRepoSchema
-          .extend({
-            state: z.string().optional(),
-            limit: z.coerce.number().int().positive().optional(),
-            start: z.coerce.number().int().nonnegative().optional(),
-          })
-          .parse(args);
+        const input = z.object(listPullRequestsShape).parse(args);
         requirePermission(config, 'read_pr');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -73,7 +78,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
     bitbucket_get_pull_request: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = prIdSchema.parse(args);
+        const input = z.object(prRefShape).parse(args);
         requirePermission(config, 'read_pr');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -98,7 +103,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
     bitbucket_get_pr_diff: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = prIdSchema.parse(args);
+        const input = z.object(prRefShape).parse(args);
         requirePermission(config, 'read_pr');
         log('info', 'tool start', { operation: 'tool_execute', toolName: 'bitbucket_get_pr_diff' });
         const result = await prApi.getDiff(input.project, input.repo, input.prId);
@@ -120,12 +125,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
     bitbucket_get_pr_commits: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = prIdSchema
-          .extend({
-            limit: z.coerce.number().int().positive().optional(),
-            start: z.coerce.number().int().nonnegative().optional(),
-          })
-          .parse(args);
+        const input = z.object(prPaginatedShape).parse(args);
         requirePermission(config, 'read_pr');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -159,12 +159,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
     bitbucket_get_pr_activities: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = prIdSchema
-          .extend({
-            limit: z.coerce.number().int().positive().optional(),
-            start: z.coerce.number().int().nonnegative().optional(),
-          })
-          .parse(args);
+        const input = z.object(prPaginatedShape).parse(args);
         requirePermission(config, 'read_pr');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -198,14 +193,14 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
     bitbucket_add_pr_comment: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = prIdSchema.extend({ text: z.string().min(1) }).parse(args);
+        const input = z.object(addPrCommentShape).parse(args);
         requirePermission(config, 'write_pr');
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_add_pr_comment',
         });
         const result = await prApi.addComment(input.project, input.repo, input.prId, input.text);
-        cache.invalidate(`${config.bitbucketUrl}:pr:${input.project}/${input.repo}/${input.prId}`);
+        invalidatePrCache(cache, config, input.project, input.repo, input.prId);
         log('info', 'tool end', {
           toolName: 'bitbucket_add_pr_comment',
           durationMs: Date.now() - start,
@@ -224,15 +219,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
     bitbucket_add_pr_inline_comment: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = prIdSchema
-          .extend({
-            text: z.string().min(1),
-            path: z.string().min(1),
-            line: z.coerce.number().int().positive(),
-            lineType: z.enum(['ADDED', 'REMOVED', 'CONTEXT']),
-            fileType: z.enum(['FROM', 'TO']).optional(),
-          })
-          .parse(args);
+        const input = z.object(addPrInlineCommentShape).parse(args);
         requirePermission(config, 'write_pr');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -250,7 +237,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
             fileType: input.fileType,
           }
         );
-        cache.invalidate(`${config.bitbucketUrl}:pr:${input.project}/${input.repo}/${input.prId}`);
+        invalidatePrCache(cache, config, input.project, input.repo, input.prId);
         log('info', 'tool end', {
           toolName: 'bitbucket_add_pr_inline_comment',
           durationMs: Date.now() - start,
@@ -272,12 +259,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
     bitbucket_reply_to_comment: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = prIdSchema
-          .extend({
-            commentId: z.coerce.number().int().positive(),
-            text: z.string().min(1),
-          })
-          .parse(args);
+        const input = z.object(replyToCommentShape).parse(args);
         requirePermission(config, 'write_pr');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -290,7 +272,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
           input.commentId,
           input.text
         );
-        cache.invalidate(`${config.bitbucketUrl}:pr:${input.project}/${input.repo}/${input.prId}`);
+        invalidatePrCache(cache, config, input.project, input.repo, input.prId);
         log('info', 'tool end', {
           toolName: 'bitbucket_reply_to_comment',
           durationMs: Date.now() - start,
@@ -309,12 +291,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
     bitbucket_resolve_comment: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = prIdSchema
-          .extend({
-            commentId: z.coerce.number().int().positive(),
-            version: z.coerce.number().int().nonnegative(),
-          })
-          .parse(args);
+        const input = z.object(resolveCommentShape).parse(args);
         requirePermission(config, 'manage_pr');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -327,7 +304,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
           input.commentId,
           input.version
         );
-        cache.invalidate(`${config.bitbucketUrl}:pr:${input.project}/${input.repo}/${input.prId}`);
+        invalidatePrCache(cache, config, input.project, input.repo, input.prId);
         log('info', 'tool end', {
           toolName: 'bitbucket_resolve_comment',
           durationMs: Date.now() - start,
@@ -346,13 +323,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
     bitbucket_update_comment: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = prIdSchema
-          .extend({
-            commentId: z.coerce.number().int().positive(),
-            text: z.string().min(1),
-            version: z.coerce.number().int().nonnegative(),
-          })
-          .parse(args);
+        const input = z.object(updateCommentShape).parse(args);
         requirePermission(config, 'write_pr');
         log('info', 'tool start', {
           operation: 'tool_execute',
@@ -366,7 +337,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
           input.text,
           input.version
         );
-        cache.invalidate(`${config.bitbucketUrl}:pr:${input.project}/${input.repo}/${input.prId}`);
+        invalidatePrCache(cache, config, input.project, input.repo, input.prId);
         log('info', 'tool end', {
           toolName: 'bitbucket_update_comment',
           durationMs: Date.now() - start,
@@ -388,11 +359,11 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
     bitbucket_approve_pr: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = prIdSchema.parse(args);
+        const input = z.object(prRefShape).parse(args);
         requirePermission(config, 'manage_pr');
         log('info', 'tool start', { operation: 'tool_execute', toolName: 'bitbucket_approve_pr' });
         const result = await prApi.approve(input.project, input.repo, input.prId);
-        cache.invalidate(`${config.bitbucketUrl}:pr:${input.project}/${input.repo}/${input.prId}`);
+        invalidatePrCache(cache, config, input.project, input.repo, input.prId);
         log('info', 'tool end', {
           toolName: 'bitbucket_approve_pr',
           durationMs: Date.now() - start,
