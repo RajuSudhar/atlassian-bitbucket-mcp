@@ -1,9 +1,12 @@
 /*
  * MCP Server setup — tool registration and request routing.
+ *
+ * Each tool is registered by pairing its shared schema (from `tools/schemas.ts`)
+ * with its handler. The SDK's `server.tool()` return type is a narrow content
+ * variant we satisfy via a single wrapper helper rather than 19 inline casts.
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
 
 import { PullRequestApi } from './bitbucket/api/pull-requests.js';
 import { RepositoryApi } from './bitbucket/api/repositories.js';
@@ -11,11 +14,38 @@ import { SearchApi } from './bitbucket/api/search.js';
 import { log } from './logger.js';
 import { createPrTools } from './tools/pr-tools.js';
 import { createRepoTools } from './tools/repo-tools.js';
+import {
+  addPrCommentShape,
+  addPrInlineCommentShape,
+  getFileContentShape,
+  listProjectsShape,
+  listPullRequestsShape,
+  prPaginatedShape,
+  prRefShape,
+  projectListShape,
+  replyToCommentShape,
+  repoPaginatedShape,
+  repoRefShape,
+  resolveCommentShape,
+  searchCodeShape,
+  searchCommitsShape,
+  updateCommentShape,
+} from './tools/schemas.js';
 import { createSearchTools } from './tools/search-tools.js';
 
 import type { BitbucketClient } from './bitbucket/client.js';
 import type { Cache } from './cache.js';
 import type { Config, McpToolResult } from '@types';
+
+/** Narrow SDK-compatible tool result (content must be text blocks). */
+type SdkToolResult = McpToolResult & { content: Array<{ type: 'text'; text: string }> };
+
+/** Wrap a tool handler to narrow its result to the SDK's text-content form. */
+function asSdkHandler(
+  handler: (args: unknown) => Promise<McpToolResult>
+): (args: unknown) => Promise<SdkToolResult> {
+  return async (args: unknown) => (await handler(args)) as SdkToolResult;
+}
 
 export function createServer(config: Config, client: BitbucketClient, cache: Cache): McpServer {
   const server = new McpServer({
@@ -31,296 +61,124 @@ export function createServer(config: Config, client: BitbucketClient, cache: Cac
   const repoTools = createRepoTools(repoApi, config, cache);
   const searchTools = createSearchTools(searchApi, config);
 
-  // -- PR Tools --
+  // --- PR Tools ---------------------------------------------------------
   server.tool(
     'bitbucket_list_pull_requests',
     'List pull requests for a repository',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      state: z.string().optional().describe('PR state filter: OPEN, MERGED, DECLINED'),
-      limit: z.coerce.number().optional().describe('Max results'),
-      start: z.coerce.number().optional().describe('Pagination start'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_list_pull_requests(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    listPullRequestsShape,
+    asSdkHandler(prTools.bitbucket_list_pull_requests)
   );
-
   server.tool(
     'bitbucket_get_pull_request',
     'Get detailed pull request information',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      prId: z.coerce.number().describe('Pull request ID'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_get_pull_request(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    prRefShape,
+    asSdkHandler(prTools.bitbucket_get_pull_request)
   );
-
   server.tool(
     'bitbucket_get_pr_diff',
     'Get pull request diff/changes',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      prId: z.coerce.number().describe('Pull request ID'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_get_pr_diff(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    prRefShape,
+    asSdkHandler(prTools.bitbucket_get_pr_diff)
   );
-
   server.tool(
     'bitbucket_get_pr_commits',
     'Get commits in a pull request',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      prId: z.coerce.number().describe('Pull request ID'),
-      limit: z.coerce.number().optional().describe('Max results'),
-      start: z.coerce.number().optional().describe('Pagination start'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_get_pr_commits(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    prPaginatedShape,
+    asSdkHandler(prTools.bitbucket_get_pr_commits)
   );
-
   server.tool(
     'bitbucket_get_pr_activities',
     'Get pull request comments and activities',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      prId: z.coerce.number().describe('Pull request ID'),
-      limit: z.coerce.number().optional().describe('Max results'),
-      start: z.coerce.number().optional().describe('Pagination start'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_get_pr_activities(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    prPaginatedShape,
+    asSdkHandler(prTools.bitbucket_get_pr_activities)
   );
-
   server.tool(
     'bitbucket_add_pr_comment',
     'Add a general comment to a pull request',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      prId: z.coerce.number().describe('Pull request ID'),
-      text: z.string().describe('Comment text'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_add_pr_comment(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    addPrCommentShape,
+    asSdkHandler(prTools.bitbucket_add_pr_comment)
   );
-
   server.tool(
     'bitbucket_add_pr_inline_comment',
     'Add inline code comment on a pull request',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      prId: z.coerce.number().describe('Pull request ID'),
-      text: z.string().describe('Comment text'),
-      path: z.string().describe('File path'),
-      line: z.coerce.number().describe('Line number'),
-      lineType: z.enum(['ADDED', 'REMOVED', 'CONTEXT']).describe('Line type'),
-      fileType: z.enum(['FROM', 'TO']).optional().describe('File type'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_add_pr_inline_comment(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    addPrInlineCommentShape,
+    asSdkHandler(prTools.bitbucket_add_pr_inline_comment)
   );
-
   server.tool(
     'bitbucket_reply_to_comment',
     'Reply to a comment on a pull request',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      prId: z.coerce.number().describe('Pull request ID'),
-      commentId: z.coerce.number().describe('Parent comment ID'),
-      text: z.string().describe('Reply text'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_reply_to_comment(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    replyToCommentShape,
+    asSdkHandler(prTools.bitbucket_reply_to_comment)
   );
-
   server.tool(
     'bitbucket_resolve_comment',
     'Resolve a comment thread on a pull request',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      prId: z.coerce.number().describe('Pull request ID'),
-      commentId: z.coerce.number().describe('Comment ID to resolve'),
-      version: z.coerce.number().describe('Comment version for optimistic locking'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_resolve_comment(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    resolveCommentShape,
+    asSdkHandler(prTools.bitbucket_resolve_comment)
   );
-
   server.tool(
     'bitbucket_update_comment',
     'Edit a comment on a pull request',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      prId: z.coerce.number().describe('Pull request ID'),
-      commentId: z.coerce.number().describe('Comment ID to edit'),
-      text: z.string().describe('Updated comment text'),
-      version: z.coerce.number().describe('Comment version for optimistic locking'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_update_comment(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    updateCommentShape,
+    asSdkHandler(prTools.bitbucket_update_comment)
   );
-
   server.tool(
     'bitbucket_approve_pr',
     'Approve a pull request',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      prId: z.coerce.number().describe('Pull request ID'),
-    },
-    async (args) =>
-      (await prTools.bitbucket_approve_pr(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    prRefShape,
+    asSdkHandler(prTools.bitbucket_approve_pr)
   );
 
-  // -- Repo Tools --
+  // --- Repo Tools -------------------------------------------------------
   server.tool(
     'bitbucket_list_projects',
     'List accessible Bitbucket projects',
-    {
-      limit: z.coerce.number().optional().describe('Max results'),
-      start: z.coerce.number().optional().describe('Pagination start'),
-    },
-    async (args) =>
-      (await repoTools.bitbucket_list_projects(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    listProjectsShape,
+    asSdkHandler(repoTools.bitbucket_list_projects)
   );
-
   server.tool(
     'bitbucket_list_repositories',
     'List repositories in a project',
-    {
-      project: z.string().describe('Project key'),
-      limit: z.coerce.number().optional().describe('Max results'),
-      start: z.coerce.number().optional().describe('Pagination start'),
-    },
-    async (args) =>
-      (await repoTools.bitbucket_list_repositories(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    projectListShape,
+    asSdkHandler(repoTools.bitbucket_list_repositories)
   );
-
   server.tool(
     'bitbucket_get_repository',
     'Get repository details',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-    },
-    async (args) =>
-      (await repoTools.bitbucket_get_repository(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    repoRefShape,
+    asSdkHandler(repoTools.bitbucket_get_repository)
   );
-
   server.tool(
     'bitbucket_get_branches',
     'List repository branches',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      limit: z.coerce.number().optional().describe('Max results'),
-      start: z.coerce.number().optional().describe('Pagination start'),
-    },
-    async (args) =>
-      (await repoTools.bitbucket_get_branches(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    repoPaginatedShape,
+    asSdkHandler(repoTools.bitbucket_get_branches)
   );
-
   server.tool(
     'bitbucket_get_commits',
     'Get commit history for a repository',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      limit: z.coerce.number().optional().describe('Max results'),
-      start: z.coerce.number().optional().describe('Pagination start'),
-    },
-    async (args) =>
-      (await repoTools.bitbucket_get_commits(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    repoPaginatedShape,
+    asSdkHandler(repoTools.bitbucket_get_commits)
   );
-
   server.tool(
     'bitbucket_get_file_content',
     'Get file content at a specific ref',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      path: z.string().describe('File path'),
-      ref: z.string().optional().describe('Branch, tag, or commit ref'),
-    },
-    async (args) =>
-      (await repoTools.bitbucket_get_file_content(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    getFileContentShape,
+    asSdkHandler(repoTools.bitbucket_get_file_content)
   );
 
-  // -- Search Tools --
+  // --- Search Tools -----------------------------------------------------
   server.tool(
     'bitbucket_search_code',
     'Search code across repositories in a project',
-    {
-      project: z.string().describe('Project key'),
-      query: z.string().describe('Search query'),
-      limit: z.coerce.number().optional().describe('Max results'),
-      start: z.coerce.number().optional().describe('Pagination start'),
-    },
-    async (args) =>
-      (await searchTools.bitbucket_search_code(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    searchCodeShape,
+    asSdkHandler(searchTools.bitbucket_search_code)
   );
-
   server.tool(
     'bitbucket_search_commits',
     'Search commits by message',
-    {
-      project: z.string().describe('Project key'),
-      repo: z.string().describe('Repository slug'),
-      query: z.string().describe('Search query'),
-      limit: z.coerce.number().optional().describe('Max results'),
-      start: z.coerce.number().optional().describe('Pagination start'),
-    },
-    async (args) =>
-      (await searchTools.bitbucket_search_commits(args)) as McpToolResult & {
-        content: Array<{ type: 'text'; text: string }>;
-      }
+    searchCommitsShape,
+    asSdkHandler(searchTools.bitbucket_search_commits)
   );
 
   log('info', 'mcp tools registered', { operation: 'server_init', toolCount: 19 });

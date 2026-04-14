@@ -64,11 +64,13 @@ export default tseslint.config(
       'import/no-default-export': 'off',
 
       // TypeScript specific
+      // disallowTypeAnnotations: true forbids inline `import('x').Y` type
+      // expressions, enforcing that all imports live at the top of the file.
       '@typescript-eslint/consistent-type-imports': [
         'error',
         {
           prefer: 'type-imports',
-          disallowTypeAnnotations: false,
+          disallowTypeAnnotations: true,
           fixStyle: 'separate-type-imports',
         },
       ],

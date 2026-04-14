@@ -27,7 +27,7 @@ export class BitbucketClient {
 
   /** Detect Cloud vs Server/DC. Cached for process lifetime. */
   async detectFlavor(): Promise<BitbucketFlavor> {
-    if (this.flavor) return this.flavor;
+    if (this.flavor !== null) return this.flavor;
 
     const url = this.config.bitbucketUrl;
     if (url.includes('bitbucket.org') || url.includes('api.bitbucket.org')) {
@@ -71,20 +71,20 @@ export class BitbucketClient {
     return `${url}/rest/api/1.0`;
   }
 
-  /** Core request with retry + rate limit */
-  async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  /** Core request with retry + rate limit. Returns undefined on 204 No Content. */
+  async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T | undefined> {
     const flavor = await this.detectFlavor();
     const base = this.apiBase(flavor);
     const method = options.method ?? 'GET';
 
     let fullUrl = `${base}${endpoint}`;
-    if (options.queryParams) {
+    if (options.queryParams !== undefined) {
       const params = new URLSearchParams();
       for (const [k, v] of Object.entries(options.queryParams)) {
         if (v !== undefined) params.set(k, String(v));
       }
       const qs = params.toString();
-      if (qs) fullUrl += `?${qs}`;
+      if (qs.length > 0) fullUrl += `?${qs}`;
     }
 
     const { maxRetries, rateLimitDelay, requestTimeout } = this.config.api;
@@ -103,7 +103,7 @@ export class BitbucketClient {
           fullUrl,
           {
             method,
-            body: options.body ? JSON.stringify(options.body) : undefined,
+            body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
           },
           requestTimeout
         );
@@ -120,7 +120,7 @@ export class BitbucketClient {
         if (response.ok) {
           // 204 No Content
           if (response.status === 204) {
-            return undefined as T;
+            return undefined;
           }
           const data: unknown = await response.json();
           return data as T;
@@ -139,14 +139,14 @@ export class BitbucketClient {
             response.status,
             endpoint,
             method,
-            body || response.statusText
+            body.length > 0 ? body : response.statusText
           );
         }
 
         // Retryable — check Retry-After header
         if (response.status === 429) {
           const retryAfter = this.parseRetryAfter(response.headers.get('Retry-After'));
-          if (retryAfter) {
+          if (retryAfter !== null) {
             log('warn', 'rate limited', {
               operation: 'rate_limit',
               endpoint,
@@ -162,7 +162,7 @@ export class BitbucketClient {
             response.status,
             endpoint,
             method,
-            body || response.statusText
+            body.length > 0 ? body : response.statusText
           );
         }
 
@@ -196,6 +196,23 @@ export class BitbucketClient {
 
     // Unreachable, but TS needs it
     throw new NetworkError(endpoint, 'exhausted retries');
+  }
+
+  /**
+   * JSON request helper for endpoints that are guaranteed to return a body.
+   * Throws if the server returns 204 unexpectedly.
+   */
+  async requestJson<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+    const result = await this.request<T>(endpoint, options);
+    if (result === undefined) {
+      throw new BitbucketApiError(
+        204,
+        endpoint,
+        options.method ?? 'GET',
+        'Unexpected empty response body'
+      );
+    }
+    return result;
   }
 
   private async rawFetch(

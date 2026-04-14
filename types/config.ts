@@ -3,6 +3,7 @@
  */
 
 import type { Seconds } from './common.js';
+import type { LogLevel } from './logger.js';
 
 export type Action =
   | 'read_pr'
@@ -21,7 +22,7 @@ export type Config = {
   readonly allowedActions: ReadonlySet<Action>;
   readonly cache: CacheConfig;
   readonly api: ApiConfig;
-  readonly logLevel: import('./logger.js').LogLevel;
+  readonly logLevel: LogLevel;
 };
 
 export type CacheConfig = {

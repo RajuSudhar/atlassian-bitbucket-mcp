@@ -38,7 +38,7 @@ const envSchema = z.object({
 });
 
 function parseAllowedActions(raw: string): ReadonlySet<Action> {
-  if (!raw.trim()) {
+  if (raw.trim().length === 0) {
     return new Set(VALID_ACTIONS);
   }
 

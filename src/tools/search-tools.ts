@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { log } from '../logger.js';
 import { requirePermission } from '../permissions.js';
+import { searchCodeShape, searchCommitsShape } from './schemas.js';
 
 import type { SearchApi } from '../bitbucket/api/search.js';
 import type { Config, McpToolResult } from '@types';
@@ -26,14 +27,7 @@ export function createSearchTools(searchApi: SearchApi, config: Config) {
     bitbucket_search_code: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = z
-          .object({
-            project: z.string().min(1),
-            query: z.string().min(1).max(500),
-            limit: z.coerce.number().int().positive().optional(),
-            start: z.coerce.number().int().nonnegative().optional(),
-          })
-          .parse(args);
+        const input = z.object(searchCodeShape).parse(args);
         requirePermission(config, 'search_code');
         log('info', 'tool start', { operation: 'tool_execute', toolName: 'bitbucket_search_code' });
         const result = await searchApi.searchCode(
@@ -60,15 +54,7 @@ export function createSearchTools(searchApi: SearchApi, config: Config) {
     bitbucket_search_commits: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {
-        const input = z
-          .object({
-            project: z.string().min(1),
-            repo: z.string().min(1),
-            query: z.string().min(1).max(500),
-            limit: z.coerce.number().int().positive().optional(),
-            start: z.coerce.number().int().nonnegative().optional(),
-          })
-          .parse(args);
+        const input = z.object(searchCommitsShape).parse(args);
         requirePermission(config, 'search_code');
         log('info', 'tool start', {
           operation: 'tool_execute',

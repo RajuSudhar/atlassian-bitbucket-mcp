@@ -13,8 +13,21 @@ const LEVEL_PRIORITY: Record<LogLevel, number> = {
   error: 3,
 };
 
-/** Patterns that must never appear in log output */
+/** Key names whose values must never reach the log sink. */
 const REDACT_KEYS = /token|authorization|auth_header|password|secret|credential/i;
+
+/**
+ * Value shapes that look like a credential and should be redacted regardless
+ * of the key they appear under. Matches:
+ *  - Bearer / Basic / Token schemes followed by a non-trivial token
+ *  - JWT-style three-segment dotted tokens (header.payload.signature)
+ *  - Standalone long opaque strings (≥ 32 chars of base64/hex/url-safe alphabet)
+ *
+ * Deliberately narrow so legitimate error messages ("BITBUCKET_TOKEN is
+ * required") are not swallowed.
+ */
+const TOKEN_SHAPE =
+  /(?:Bearer|Basic|Token)\s+[A-Za-z0-9._~+/=-]{16,}|\b[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b|\b[A-Za-z0-9._~+/=-]{32,}\b/;
 
 let currentLevel: LogLevel = 'info';
 
@@ -27,8 +40,8 @@ function redact(context: LogContext): Record<string, unknown> {
   for (const [key, value] of Object.entries(context)) {
     if (REDACT_KEYS.test(key)) {
       result[key] = '[REDACTED]';
-    } else if (typeof value === 'string' && REDACT_KEYS.test(value)) {
-      result[key] = '[REDACTED]';
+    } else if (typeof value === 'string' && TOKEN_SHAPE.test(value)) {
+      result[key] = value.replace(new RegExp(TOKEN_SHAPE, 'g'), '[REDACTED]');
     } else {
       result[key] = value;
     }
