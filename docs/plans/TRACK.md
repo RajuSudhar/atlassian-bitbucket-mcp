@@ -4,41 +4,41 @@ Last updated: 2026-04-10
 
 ## Status legend
 
-[x] done  [~] wip  [ ] todo  [!] blocked
+[x] done [~] wip [ ] todo [!] blocked
 
 ## Phases
 
 ### Phase 1 — Foundation
 
-[x] feat-config         → docs/plans/phase-1/feat-config/plan.md
-[x] feat-logger         → docs/plans/phase-1/feat-logger/plan.md
+[x] feat-config → docs/plans/phase-1/feat-config/plan.md
+[x] feat-logger → docs/plans/phase-1/feat-logger/plan.md
 [x] feat-types-scaffold → docs/plans/phase-1/feat-types-scaffold/plan.md
 [ ] feat-openapi-codegen → docs/plans/phase-1/feat-openapi-codegen/plan.md
 
 ### Phase 2 — Bitbucket Client
 
-[x] feat-client-core    → docs/plans/phase-2/feat-client-core/plan.md
-[x] feat-auth           → docs/plans/phase-2/feat-auth/plan.md
+[x] feat-client-core → docs/plans/phase-2/feat-client-core/plan.md
+[x] feat-auth → docs/plans/phase-2/feat-auth/plan.md
 [x] feat-retry-ratelimit → docs/plans/phase-2/feat-retry-ratelimit/plan.md
 [x] feat-cloud-vs-server → docs/plans/phase-2/feat-cloud-vs-server/plan.md
 
 ### Phase 3 — Caching
 
-[x] feat-cache          → docs/plans/phase-3/feat-cache/plan.md
+[x] feat-cache → docs/plans/phase-3/feat-cache/plan.md
 
 ### Phase 4 — MCP Server & Tools
 
-[x] feat-server-core    → docs/plans/phase-4/feat-server-core/plan.md
-[x] feat-permissions    → docs/plans/phase-4/feat-permissions/plan.md
-[x] feat-pr-tools       → docs/plans/phase-4/feat-pr-tools/plan.md
-[x] feat-repo-tools     → docs/plans/phase-4/feat-repo-tools/plan.md
-[x] feat-search-tools   → docs/plans/phase-4/feat-search-tools/plan.md
+[x] feat-server-core → docs/plans/phase-4/feat-server-core/plan.md
+[x] feat-permissions → docs/plans/phase-4/feat-permissions/plan.md
+[x] feat-pr-tools → docs/plans/phase-4/feat-pr-tools/plan.md
+[x] feat-repo-tools → docs/plans/phase-4/feat-repo-tools/plan.md
+[x] feat-search-tools → docs/plans/phase-4/feat-search-tools/plan.md
 
 ### Phase 5 — Testing & Release
 
-[ ] feat-unit-tests     → docs/plans/phase-5/feat-unit-tests/plan.md
-[ ] feat-ci             → docs/plans/phase-5/feat-ci/plan.md
-[ ] feat-npx-release    → docs/plans/phase-5/feat-npx-release/plan.md
+[ ] feat-unit-tests → docs/plans/phase-5/feat-unit-tests/plan.md
+[ ] feat-ci → docs/plans/phase-5/feat-ci/plan.md
+[ ] feat-npx-release → docs/plans/phase-5/feat-npx-release/plan.md
 
 ## Done (across branches)
 
