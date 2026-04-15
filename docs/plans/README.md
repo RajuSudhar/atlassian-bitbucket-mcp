@@ -7,7 +7,7 @@ Phased rollout of the Atlassian Bitbucket MCP server.
 
 ## Plan format (mandatory)
 
-```
+```text
 # feat-<slug>
 
 Phase: <n>  |  Status: [ ] todo / [~] wip / [x] done / [!] blocked
