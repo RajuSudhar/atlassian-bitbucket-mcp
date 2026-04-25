@@ -1,170 +1,62 @@
 /*
- * Bitbucket API types — curated from OpenAPI specs
- * When openapi-typescript codegen is wired (feat-openapi-codegen), this file
- * will re-export from generated/. Until then, hand-maintained.
- * Once openapi/ exists, any change here MUST update the corresponding YAML.
+ * Bitbucket API types — curated re-exports from OpenAPI-generated declarations.
+ * The YAMLs under `openapi/` are the single source of truth; this module only
+ * picks the slice that tools consume and aliases it to the names used by src/.
+ *
+ * Server / DC schemas drive the existing call sites; Cloud schemas are exposed
+ * for parity and future tool implementations. Any change here MUST land in the
+ * same commit as the matching `openapi/*.yaml` update (CI enforces drift).
  */
 
-export type BitbucketUser = {
-  readonly name: string;
-  readonly emailAddress: string;
-  readonly displayName: string;
-  readonly slug?: string;
-  readonly id?: number;
-  readonly active?: boolean;
+import type { components as CloudComponents } from './generated/bitbucket-cloud';
+import type { components as ServerComponents } from './generated/bitbucket-server';
+
+type ServerSchemas = ServerComponents['schemas'];
+type CloudSchemas = CloudComponents['schemas'];
+
+export type BitbucketUser = ServerSchemas['User'];
+export type BitbucketProject = ServerSchemas['Project'];
+export type BitbucketRepository = ServerSchemas['Repository'];
+export type BitbucketLinks = ServerSchemas['Links'];
+
+export type PullRequestState = ServerSchemas['PullRequestState'];
+export type PullRequest = ServerSchemas['PullRequest'];
+
+export type BitbucketParticipant = ServerSchemas['Participant'];
+export type BitbucketRef = ServerSchemas['Ref'];
+export type BitbucketBranch = ServerSchemas['Branch'];
+export type BitbucketCommit = ServerSchemas['Commit'];
+export type BitbucketComment = ServerSchemas['Comment'];
+export type BitbucketCommentAnchor = ServerSchemas['CommentAnchor'];
+export type BitbucketActivity = ServerSchemas['Activity'];
+
+export type BitbucketDiff = ServerSchemas['Diff'];
+export type BitbucketDiffEntry = ServerSchemas['DiffEntry'];
+export type BitbucketHunk = ServerSchemas['DiffHunk'];
+export type BitbucketSegment = ServerSchemas['DiffSegment'];
+
+export type BitbucketSearchResult = ServerSchemas['SearchResult'];
+export type BitbucketSearchHit = ServerSchemas['SearchHit'];
+
+/**
+ * Paged API wrapper (Server/DC style). OpenAPI 3 doesn't support TypeScript
+ * generics, so the meta block lives in the YAML (`PagedResponseMeta`) while
+ * the typed `values` array is composed here.
+ */
+export type BitbucketPagedResponse<T> = ServerSchemas['PagedResponseMeta'] & {
+  readonly values: ReadonlyArray<T>;
 };
 
-export type BitbucketProject = {
-  readonly key: string;
-  readonly name: string;
-  readonly description?: string;
-  readonly public?: boolean;
-  readonly id?: number;
-};
+export type BitbucketCloudAccount = CloudSchemas['Account'];
+export type BitbucketCloudRepository = CloudSchemas['Repository'];
+export type BitbucketCloudPullRequest = CloudSchemas['PullRequest'];
+export type BitbucketCloudPullRequestState = CloudSchemas['PullRequestState'];
+export type BitbucketCloudComment = CloudSchemas['Comment'];
+export type BitbucketCloudActivity = CloudSchemas['Activity'];
+export type BitbucketCloudCommit = CloudSchemas['Commit'];
+export type BitbucketCloudSearchCodeHit = CloudSchemas['SearchCodeHit'];
 
-export type BitbucketRepository = {
-  readonly slug: string;
-  readonly name: string;
-  readonly project: BitbucketProject;
-  readonly description?: string;
-  readonly forkable?: boolean;
-  readonly public?: boolean;
-  readonly scmId?: string;
-  readonly state?: string;
-  readonly links?: BitbucketLinks;
-};
-
-export type BitbucketLinks = {
-  readonly self?: ReadonlyArray<{ readonly href: string }>;
-  readonly clone?: ReadonlyArray<{ readonly href: string; readonly name: string }>;
-};
-
-export type PullRequestState = 'OPEN' | 'MERGED' | 'DECLINED';
-
-export type PullRequest = {
-  readonly id: number;
-  readonly title: string;
-  readonly description?: string;
-  readonly state: PullRequestState;
-  readonly author: BitbucketParticipant;
-  readonly reviewers?: ReadonlyArray<BitbucketParticipant>;
-  readonly fromRef: BitbucketRef;
-  readonly toRef: BitbucketRef;
-  readonly createdDate: number;
-  readonly updatedDate: number;
-  readonly closedDate?: number;
-  readonly locked?: boolean;
-  readonly links?: BitbucketLinks;
-};
-
-export type BitbucketParticipant = {
-  readonly user: BitbucketUser;
-  readonly role?: 'AUTHOR' | 'REVIEWER' | 'PARTICIPANT';
-  readonly approved?: boolean;
-  readonly status?: 'UNAPPROVED' | 'NEEDS_WORK' | 'APPROVED';
-};
-
-export type BitbucketRef = {
-  readonly id: string;
-  readonly displayId: string;
-  readonly latestCommit?: string;
-  readonly repository?: BitbucketRepository;
-};
-
-export type BitbucketBranch = {
-  readonly id: string;
-  readonly displayId: string;
-  readonly type?: string;
-  readonly latestCommit: string;
-  readonly latestChangeset?: string;
-  readonly isDefault?: boolean;
-};
-
-export type BitbucketCommit = {
-  readonly id: string;
-  readonly displayId: string;
-  readonly message: string;
-  readonly author: BitbucketUser;
-  readonly authorTimestamp: number;
-  readonly committer?: BitbucketUser;
-  readonly committerTimestamp?: number;
-  readonly parents?: ReadonlyArray<{ readonly id: string; readonly displayId: string }>;
-};
-
-export type BitbucketComment = {
-  readonly id: number;
-  readonly text: string;
-  readonly author: BitbucketUser;
-  readonly createdDate: number;
-  readonly updatedDate: number;
-  readonly severity?: 'NORMAL' | 'BLOCKER';
-  readonly state?: 'OPEN' | 'RESOLVED';
-  readonly anchor?: BitbucketCommentAnchor;
-  readonly comments?: ReadonlyArray<BitbucketComment>;
-};
-
-export type BitbucketCommentAnchor = {
-  readonly path: string;
-  readonly line: number;
-  readonly lineType: 'ADDED' | 'REMOVED' | 'CONTEXT';
-  readonly fileType?: 'FROM' | 'TO';
-};
-
-export type BitbucketActivity = {
-  readonly id: number;
-  readonly createdDate: number;
-  readonly action: string;
-  readonly user: BitbucketUser;
-  readonly comment?: BitbucketComment;
-};
-
-export type BitbucketDiff = {
-  readonly diffs: ReadonlyArray<BitbucketDiffEntry>;
-  readonly truncated?: boolean;
-};
-
-export type BitbucketDiffEntry = {
-  readonly source?: { readonly toString: string };
-  readonly destination?: { readonly toString: string };
-  readonly hunks?: ReadonlyArray<BitbucketHunk>;
-};
-
-export type BitbucketHunk = {
-  readonly sourceLine: number;
-  readonly sourceSpan: number;
-  readonly destinationLine: number;
-  readonly destinationSpan: number;
-  readonly segments: ReadonlyArray<BitbucketSegment>;
-};
-
-export type BitbucketSegment = {
-  readonly type: 'ADDED' | 'REMOVED' | 'CONTEXT';
-  readonly lines: ReadonlyArray<{
-    readonly line: number;
-    readonly source: number;
-    readonly destination: number;
-  }>;
-};
-
-export type BitbucketSearchResult = {
-  readonly query: string;
-  readonly limit: number;
-  readonly count: number;
-  readonly values: ReadonlyArray<BitbucketSearchHit>;
-};
-
-export type BitbucketSearchHit = {
-  readonly file?: { readonly path: string; readonly name: string };
-  readonly pathMatches?: ReadonlyArray<unknown>;
-  readonly hitContexts?: ReadonlyArray<{ readonly context: string }>;
-};
-
-/** Paged API wrapper (Server/DC style) */
-export type BitbucketPagedResponse<T> = {
-  readonly size: number;
-  readonly limit: number;
-  readonly start: number;
-  readonly isLastPage: boolean;
-  readonly nextPageStart?: number;
+/** Paginated wrapper (Cloud REST 2.0 style). */
+export type BitbucketCloudPaginated<T> = Omit<CloudSchemas['Paginated'], 'values'> & {
   readonly values: ReadonlyArray<T>;
 };
