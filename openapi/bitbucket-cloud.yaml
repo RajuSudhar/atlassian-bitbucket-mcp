@@ -1,0 +1,397 @@
+openapi: 3.1.0
+info:
+  title: Bitbucket Cloud REST API (curated)
+  version: '2.0'
+  description: |
+    Minimal curated subset of the Bitbucket Cloud REST 2.0 API covering only
+    the resources consumed by atlassian-bitbucket-mcp tools. Source of truth
+    for `types/generated/bitbucket-cloud.d.ts`.
+
+    Only fields the tools rely on are modelled. Cloud and Server payloads
+    differ in shape (e.g. paging envelope, user identity, link layout); curated
+    re-exports in `types/bitbucket.ts` reconcile the two where needed.
+servers:
+  - url: https://api.bitbucket.org/2.0
+paths: {}
+components:
+  schemas:
+    Account:
+      type: object
+      required: [type, display_name]
+      properties:
+        type:
+          type: string
+        uuid:
+          type: string
+        account_id:
+          type: string
+        display_name:
+          type: string
+        nickname:
+          type: string
+        username:
+          type: string
+        links:
+          $ref: '#/components/schemas/AccountLinks'
+    AccountLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/Link'
+        html:
+          $ref: '#/components/schemas/Link'
+        avatar:
+          $ref: '#/components/schemas/Link'
+    Link:
+      type: object
+      required: [href]
+      properties:
+        href:
+          type: string
+        name:
+          type: string
+    CloneLink:
+      type: object
+      required: [href, name]
+      properties:
+        href:
+          type: string
+        name:
+          type: string
+    Workspace:
+      type: object
+      required: [type, slug, name]
+      properties:
+        type:
+          type: string
+        uuid:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+    Project:
+      type: object
+      required: [type, key, name]
+      properties:
+        type:
+          type: string
+        uuid:
+          type: string
+        key:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        is_private:
+          type: boolean
+    RepositoryLinks:
+      type: object
+      properties:
+        self:
+          $ref: '#/components/schemas/Link'
+        html:
+          $ref: '#/components/schemas/Link'
+        clone:
+          type: array
+          items:
+            $ref: '#/components/schemas/CloneLink'
+    Repository:
+      type: object
+      required: [type, slug, name, full_name]
+      properties:
+        type:
+          type: string
+        uuid:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        full_name:
+          type: string
+        description:
+          type: string
+        is_private:
+          type: boolean
+        scm:
+          type: string
+        workspace:
+          $ref: '#/components/schemas/Workspace'
+        project:
+          $ref: '#/components/schemas/Project'
+        links:
+          $ref: '#/components/schemas/RepositoryLinks'
+    PullRequestState:
+      type: string
+      enum: [OPEN, MERGED, DECLINED, SUPERSEDED]
+    Branch:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    PullRequestEndpoint:
+      type: object
+      required: [branch]
+      properties:
+        branch:
+          $ref: '#/components/schemas/Branch'
+        commit:
+          type: object
+          properties:
+            hash:
+              type: string
+        repository:
+          $ref: '#/components/schemas/Repository'
+    PullRequest:
+      type: object
+      required: [id, type, title, state, author, source, destination, created_on, updated_on]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        state:
+          $ref: '#/components/schemas/PullRequestState'
+        author:
+          $ref: '#/components/schemas/Account'
+        source:
+          $ref: '#/components/schemas/PullRequestEndpoint'
+        destination:
+          $ref: '#/components/schemas/PullRequestEndpoint'
+        created_on:
+          type: string
+          format: date-time
+        updated_on:
+          type: string
+          format: date-time
+        closed_on:
+          type: string
+          format: date-time
+        reviewers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+        links:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Link'
+    Participant:
+      type: object
+      required: [type, user, role]
+      properties:
+        type:
+          type: string
+        user:
+          $ref: '#/components/schemas/Account'
+        role:
+          type: string
+          enum: [PARTICIPANT, REVIEWER]
+        approved:
+          type: boolean
+        state:
+          type: string
+          enum: [approved, changes_requested, null]
+          nullable: true
+        participated_on:
+          type: string
+          format: date-time
+    CommentInline:
+      type: object
+      properties:
+        path:
+          type: string
+        from:
+          type: integer
+          nullable: true
+        to:
+          type: integer
+          nullable: true
+    CommentContent:
+      type: object
+      required: [raw]
+      properties:
+        raw:
+          type: string
+        markup:
+          type: string
+        html:
+          type: string
+    Comment:
+      type: object
+      required: [id, type, content, user, created_on, updated_on]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        content:
+          $ref: '#/components/schemas/CommentContent'
+        user:
+          $ref: '#/components/schemas/Account'
+        created_on:
+          type: string
+          format: date-time
+        updated_on:
+          type: string
+          format: date-time
+        deleted:
+          type: boolean
+        inline:
+          $ref: '#/components/schemas/CommentInline'
+        parent:
+          type: object
+          properties:
+            id:
+              type: integer
+        pullrequest:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+        resolution:
+          type: object
+          nullable: true
+          properties:
+            type:
+              type: string
+            user:
+              $ref: '#/components/schemas/Account'
+            created_on:
+              type: string
+              format: date-time
+    Activity:
+      type: object
+      properties:
+        update:
+          type: object
+        approval:
+          type: object
+        comment:
+          $ref: '#/components/schemas/Comment'
+        changes_requested:
+          type: object
+        pull_request:
+          $ref: '#/components/schemas/PullRequest'
+    Commit:
+      type: object
+      required: [type, hash, message, date, author]
+      properties:
+        type:
+          type: string
+        hash:
+          type: string
+        message:
+          type: string
+        date:
+          type: string
+          format: date-time
+        author:
+          type: object
+          required: [raw]
+          properties:
+            raw:
+              type: string
+            user:
+              $ref: '#/components/schemas/Account'
+        parents:
+          type: array
+          items:
+            type: object
+            required: [hash]
+            properties:
+              hash:
+                type: string
+              type:
+                type: string
+        repository:
+          $ref: '#/components/schemas/Repository'
+    SearchCodeMatch:
+      type: object
+      properties:
+        line:
+          type: integer
+        segments:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+              match:
+                type: boolean
+    SearchCodeHit:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+        content_match_count:
+          type: integer
+        content_matches:
+          type: array
+          items:
+            type: object
+            properties:
+              lines:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchCodeMatch'
+        path_matches:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+              match:
+                type: boolean
+        file:
+          type: object
+          required: [path]
+          properties:
+            path:
+              type: string
+            type:
+              type: string
+            commit:
+              type: object
+              properties:
+                hash:
+                  type: string
+            links:
+              type: object
+              properties:
+                self:
+                  $ref: '#/components/schemas/Link'
+        repository:
+          $ref: '#/components/schemas/Repository'
+    Paginated:
+      type: object
+      required: [values]
+      properties:
+        size:
+          type: integer
+        page:
+          type: integer
+        pagelen:
+          type: integer
+        next:
+          type: string
+        previous:
+          type: string
+        values:
+          type: array
+          items: {}

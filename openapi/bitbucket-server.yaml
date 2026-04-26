@@ -1,0 +1,404 @@
+openapi: 3.1.0
+info:
+  title: Bitbucket Server / Data Center REST API (curated)
+  version: '1.0'
+  description: |
+    Minimal curated subset of the Bitbucket Server / Data Center REST API
+    (REST 1.0) covering only the resources consumed by atlassian-bitbucket-mcp
+    tools. Source of truth for `types/generated/bitbucket-server.d.ts`.
+
+    Any change to `types/bitbucket.ts` MUST land in the same commit as the
+    matching schema change here.
+servers:
+  - url: '{baseUrl}/rest/api/1.0'
+    variables:
+      baseUrl:
+        default: https://bitbucket.example.com
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      required: [name, emailAddress, displayName]
+      properties:
+        name:
+          type: string
+        emailAddress:
+          type: string
+        displayName:
+          type: string
+        slug:
+          type: string
+        id:
+          type: integer
+        active:
+          type: boolean
+    Project:
+      type: object
+      required: [key, name]
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        public:
+          type: boolean
+        id:
+          type: integer
+    LinkHref:
+      type: object
+      required: [href]
+      properties:
+        href:
+          type: string
+    LinkClone:
+      type: object
+      required: [href, name]
+      properties:
+        href:
+          type: string
+        name:
+          type: string
+    Links:
+      type: object
+      properties:
+        self:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkHref'
+        clone:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkClone'
+    Repository:
+      type: object
+      required: [slug, name, project]
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        project:
+          $ref: '#/components/schemas/Project'
+        description:
+          type: string
+        forkable:
+          type: boolean
+        public:
+          type: boolean
+        scmId:
+          type: string
+        state:
+          type: string
+        links:
+          $ref: '#/components/schemas/Links'
+    PullRequestState:
+      type: string
+      enum: [OPEN, MERGED, DECLINED]
+    ParticipantRole:
+      type: string
+      enum: [AUTHOR, REVIEWER, PARTICIPANT]
+    ParticipantStatus:
+      type: string
+      enum: [UNAPPROVED, NEEDS_WORK, APPROVED]
+    Participant:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        role:
+          $ref: '#/components/schemas/ParticipantRole'
+        approved:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/ParticipantStatus'
+    Ref:
+      type: object
+      required: [id, displayId]
+      properties:
+        id:
+          type: string
+        displayId:
+          type: string
+        latestCommit:
+          type: string
+        repository:
+          $ref: '#/components/schemas/Repository'
+    PullRequest:
+      type: object
+      required:
+        - id
+        - title
+        - state
+        - author
+        - fromRef
+        - toRef
+        - createdDate
+        - updatedDate
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        state:
+          $ref: '#/components/schemas/PullRequestState'
+        author:
+          $ref: '#/components/schemas/Participant'
+        reviewers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+        fromRef:
+          $ref: '#/components/schemas/Ref'
+        toRef:
+          $ref: '#/components/schemas/Ref'
+        createdDate:
+          type: integer
+          format: int64
+        updatedDate:
+          type: integer
+          format: int64
+        closedDate:
+          type: integer
+          format: int64
+        locked:
+          type: boolean
+        links:
+          $ref: '#/components/schemas/Links'
+    Branch:
+      type: object
+      required: [id, displayId, latestCommit]
+      properties:
+        id:
+          type: string
+        displayId:
+          type: string
+        type:
+          type: string
+        latestCommit:
+          type: string
+        latestChangeset:
+          type: string
+        isDefault:
+          type: boolean
+    CommitParent:
+      type: object
+      required: [id, displayId]
+      properties:
+        id:
+          type: string
+        displayId:
+          type: string
+    Commit:
+      type: object
+      required: [id, displayId, message, author, authorTimestamp]
+      properties:
+        id:
+          type: string
+        displayId:
+          type: string
+        message:
+          type: string
+        author:
+          $ref: '#/components/schemas/User'
+        authorTimestamp:
+          type: integer
+          format: int64
+        committer:
+          $ref: '#/components/schemas/User'
+        committerTimestamp:
+          type: integer
+          format: int64
+        parents:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommitParent'
+    CommentSeverity:
+      type: string
+      enum: [NORMAL, BLOCKER]
+    CommentState:
+      type: string
+      enum: [OPEN, RESOLVED]
+    LineType:
+      type: string
+      enum: [ADDED, REMOVED, CONTEXT]
+    FileType:
+      type: string
+      enum: [FROM, TO]
+    CommentAnchor:
+      type: object
+      required: [path, line, lineType]
+      properties:
+        path:
+          type: string
+        line:
+          type: integer
+        lineType:
+          $ref: '#/components/schemas/LineType'
+        fileType:
+          $ref: '#/components/schemas/FileType'
+    Comment:
+      type: object
+      required: [id, text, author, createdDate, updatedDate]
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+        author:
+          $ref: '#/components/schemas/User'
+        createdDate:
+          type: integer
+          format: int64
+        updatedDate:
+          type: integer
+          format: int64
+        severity:
+          $ref: '#/components/schemas/CommentSeverity'
+        state:
+          $ref: '#/components/schemas/CommentState'
+        anchor:
+          $ref: '#/components/schemas/CommentAnchor'
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+    Activity:
+      type: object
+      required: [id, createdDate, action, user]
+      properties:
+        id:
+          type: integer
+        createdDate:
+          type: integer
+          format: int64
+        action:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+        comment:
+          $ref: '#/components/schemas/Comment'
+    DiffSegment:
+      type: object
+      required: [type, lines]
+      properties:
+        type:
+          $ref: '#/components/schemas/LineType'
+        lines:
+          type: array
+          items:
+            type: object
+            required: [line, source, destination]
+            properties:
+              line:
+                type: integer
+              source:
+                type: integer
+              destination:
+                type: integer
+    DiffHunk:
+      type: object
+      required:
+        - sourceLine
+        - sourceSpan
+        - destinationLine
+        - destinationSpan
+        - segments
+      properties:
+        sourceLine:
+          type: integer
+        sourceSpan:
+          type: integer
+        destinationLine:
+          type: integer
+        destinationSpan:
+          type: integer
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiffSegment'
+    DiffPath:
+      type: object
+      properties:
+        toString:
+          type: string
+    DiffEntry:
+      type: object
+      properties:
+        source:
+          $ref: '#/components/schemas/DiffPath'
+        destination:
+          $ref: '#/components/schemas/DiffPath'
+        hunks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiffHunk'
+    Diff:
+      type: object
+      required: [diffs]
+      properties:
+        diffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiffEntry'
+        truncated:
+          type: boolean
+    SearchHitFile:
+      type: object
+      required: [path, name]
+      properties:
+        path:
+          type: string
+        name:
+          type: string
+    SearchHitContext:
+      type: object
+      required: [context]
+      properties:
+        context:
+          type: string
+    SearchHit:
+      type: object
+      properties:
+        file:
+          $ref: '#/components/schemas/SearchHitFile'
+        pathMatches:
+          type: array
+          items: {}
+        hitContexts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchHitContext'
+    SearchResult:
+      type: object
+      required: [query, limit, count, values]
+      properties:
+        query:
+          type: string
+        limit:
+          type: integer
+        count:
+          type: integer
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchHit'
+    PagedResponseMeta:
+      type: object
+      required: [size, limit, start, isLastPage]
+      properties:
+        size:
+          type: integer
+        limit:
+          type: integer
+        start:
+          type: integer
+        isLastPage:
+          type: boolean
+        nextPageStart:
+          type: integer

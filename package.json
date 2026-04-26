@@ -33,6 +33,8 @@
     "validate": "pnpm run format:all && pnpm run lint:all && pnpm run typecheck",
     "validate:branch": "./scripts/validate-branch-name.sh",
     "sync:locks": "./scripts/sync-lock-files.sh",
+    "types:gen": "./scripts/gen-types.sh",
+    "types:check-drift": "./scripts/check-types-drift.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -66,6 +68,7 @@
     "husky": "9.1.7",
     "markdownlint-cli2": "0.19.1",
     "markdownlint-cli2-formatter-pretty": "0.0.9",
+    "openapi-typescript": "7.13.0",
     "prettier": "3.7.2",
     "prettier-plugin-sh": "0.18.0",
     "typescript": "5.9.3",
