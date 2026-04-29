@@ -1,6 +1,6 @@
 # TRACK — Atlassian Bitbucket MCP
 
-Last updated: 2026-04-10
+Last updated: 2026-04-25
 
 ## Status legend
 
@@ -13,7 +13,7 @@ Last updated: 2026-04-10
 [x] feat-config → docs/plans/phase-1/feat-config/plan.md
 [x] feat-logger → docs/plans/phase-1/feat-logger/plan.md
 [x] feat-types-scaffold → docs/plans/phase-1/feat-types-scaffold/plan.md
-[ ] feat-openapi-codegen → docs/plans/phase-1/feat-openapi-codegen/plan.md
+[x] feat-openapi-codegen → docs/plans/phase-1/feat-openapi-codegen/plan.md
 
 ### Phase 2 — Bitbucket Client
 
@@ -56,15 +56,27 @@ The following items are implemented on `feature/implement-mcp-server`:
 - src/bitbucket/ client with retry, backoff, jitter, rate-limit, Cloud/Server detection, auth
 - src/bitbucket/api/ pull-requests, repositories, search resource modules
 - src/permissions.ts with action enforcement
-- src/tools/ pr-tools (11), repo-tools (6), search-tools (2) — all 20 tools implemented
+- src/tools/ pr-tools (11), repo-tools (6), search-tools (2) — 19 tools total
 - src/server.ts MCP server with full tool registration
 - src/index.ts entry point with stdio transport, graceful shutdown
 - tsconfig updated: paths @types, bundler resolution, noUncheckedIndexedAccess
 - typecheck passes with zero errors
 
+The following items have landed on `main` since:
+
+- src/tools/registry.ts — tool definitions extracted into a single registry,
+  server.ts reduced to a thin wiring layer (#7)
+- openapi/bitbucket-cloud.yaml + openapi/bitbucket-server.yaml authored as the
+  source of truth for `types/generated/*.d.ts`
+- scripts/gen-types.sh + scripts/check-types-drift.sh + `types:gen` /
+  `types:check-drift` npm scripts
+- pre-commit hook regenerates types and fails on drift when `openapi/*.yaml`
+  is staged
+- types/bitbucket.ts curated to re-export from generated declarations,
+  preserving the existing `Bitbucket*` public names
+
 ## Blockers / decisions pending
 
-- feat-openapi-codegen: yaml files + openapi-typescript + drift check — not yet done
 - Phase 5: testing, CI, NPX release — all pending
 - `README.md` uses `docs/<description>` but branch standard is `doc/<description>` — reconcile
 - `SECURITY.md` contains `[your-email]` placeholder
