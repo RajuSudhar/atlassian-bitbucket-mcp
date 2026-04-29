@@ -13,7 +13,7 @@ echo "Running pre-commit checks..."
 
 # 0. Sync lock files if package.json changed
 if git diff --cached --name-only | grep -q "^package\.json$"; then
-  echo "[0/7] Syncing lock files (package.json changed)..."
+  echo "[0/8] Syncing lock files (package.json changed)..."
   ./scripts/sync-lock-files.sh
   if [ $? -ne 0 ]; then
     echo "ERROR: Lock file sync failed!"
@@ -23,8 +23,26 @@ if git diff --cached --name-only | grep -q "^package\.json$"; then
   git add package-lock.json pnpm-lock.yaml 2> /dev/null || true
 fi
 
+# 0b. Regenerate types if any openapi/*.yaml changed; stage them; verify no drift
+if git diff --cached --name-only | grep -qE "^openapi/.*\.ya?ml$"; then
+  echo "[0b/8] Regenerating types from openapi/*.yaml..."
+  ./scripts/gen-types.sh
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Type generation failed!"
+    exit 1
+  fi
+  git add types/generated 2> /dev/null || true
+
+  echo "[0b/8] Verifying types/generated has no remaining drift..."
+  ./scripts/check-types-drift.sh
+  if [ $? -ne 0 ]; then
+    echo "ERROR: openapi -> types drift detected after regeneration!"
+    exit 1
+  fi
+fi
+
 # 1. Validate branch name
-echo "[1/7] Validating branch name..."
+echo "[1/8] Validating branch name..."
 ./scripts/validate-branch-name.sh
 if [ $? -ne 0 ]; then
   echo "ERROR: Branch name validation failed!"
@@ -32,7 +50,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # 2. Verify lock files are in sync
-echo "[2/7] Verifying lock files are in sync..."
+echo "[2/8] Verifying lock files are in sync..."
 if [ -f "package-lock.json" ] && [ -f "pnpm-lock.yaml" ]; then
   # Check if dependencies match
   npm_count=$(grep -c '"resolved":' package-lock.json 2> /dev/null || echo "0")
@@ -49,7 +67,7 @@ else
 fi
 
 # 3. Format code with Prettier
-echo "[3/7] Formatting code..."
+echo "[3/8] Formatting code..."
 pnpm run format
 if [ $? -ne 0 ]; then
   echo "ERROR: Formatting failed!"
@@ -57,7 +75,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # 4. Lint markdown
-echo "[4/7] Linting markdown..."
+echo "[4/8] Linting markdown..."
 pnpm run lint:md:fix
 if [ $? -ne 0 ]; then
   echo "ERROR: Markdown linting failed!"
@@ -65,7 +83,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # 5. Lint and fix issues
-echo "[5/7] Linting code..."
+echo "[5/8] Linting code..."
 pnpm run lint
 if [ $? -ne 0 ]; then
   echo "ERROR: Linting failed!"
@@ -73,7 +91,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # 6. Type check
-echo "[6/7] Type checking..."
+echo "[6/8] Type checking..."
 pnpm run typecheck
 if [ $? -ne 0 ]; then
   echo "ERROR: Type check failed!"
@@ -81,7 +99,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # 7. Build check
-echo "[7/7] Building..."
+echo "[7/8] Building..."
 pnpm run build
 if [ $? -ne 0 ]; then
   echo "ERROR: Build failed!"

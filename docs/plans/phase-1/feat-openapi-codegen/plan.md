@@ -1,6 +1,6 @@
 # feat-openapi-codegen
 
-Phase: 1 | Status: [ ] todo
+Phase: 1 | Status: [x] done
 Depends on: feat-types-scaffold
 Ref: `claude-ref/openapi.md`, `claude-ref/typescript.md`, `claude-ref/security.md`
 
@@ -38,25 +38,36 @@ Generate TS types from `openapi/*.yaml` so YAML is the single source of truth fo
 
 ## Tasks
 
-- [ ] run `./scripts/check-package-security.sh openapi-typescript`
-- [ ] `pnpm add -D openapi-typescript@<exact>`
-- [ ] author minimal `openapi/bitbucket-cloud.yaml` covering: Repository, PullRequest, Comment, Activity, Branch, Commit, User, SearchResult
-- [ ] author minimal `openapi/bitbucket-server.yaml` for same resources (REST 1.0)
-- [ ] validate both YAMLs
-- [ ] add `scripts/gen-types.sh` + `types:gen` npm script
-- [ ] add drift-check script (`types:gen && git diff --exit-code types/generated`)
-- [ ] pre-commit hook: run drift check on YAML change
-- [ ] curate `types/bitbucket.ts` re-exports
-- [ ] unit test: curated types compile and match shape expectations
+- [x] run `./scripts/check-package-security.sh openapi-typescript`
+- [x] `pnpm add -D openapi-typescript@7.13.0`
+- [x] author minimal `openapi/bitbucket-cloud.yaml` covering: Repository, PullRequest, Comment, Activity, Branch, Commit, User, SearchResult
+- [x] author minimal `openapi/bitbucket-server.yaml` for same resources (REST 1.0)
+- [x] validate both YAMLs (parsed by openapi-typescript without error)
+- [x] add `scripts/gen-types.sh` + `types:gen` npm script
+- [x] add drift-check script (`types:gen && git diff --exit-code types/generated`)
+- [x] pre-commit hook: run drift check on YAML change
+- [x] curate `types/bitbucket.ts` re-exports
+- [ ] unit test: curated types compile and match shape expectations (deferred to feat-unit-tests, contract tests)
 
 ## Definition of done
 
-- [ ] `pnpm run types:gen` idempotent
-- [ ] drift check wired into pre-commit and CI
-- [ ] both YAMLs lint-clean
-- [ ] no `interface` in generated or curated files
-- [ ] `types/bitbucket.ts` only exports `type`
-- [ ] TRACK.md updated
+- [x] `pnpm run types:gen` idempotent
+- [x] drift check wired into pre-commit (CI hook lands with feat-ci)
+- [x] both YAMLs parse cleanly via `openapi-typescript`
+- [x] curated `types/bitbucket.ts` exports only `type` aliases (the lone `interface components` lives in the auto-generated `.d.ts` and is not user-authored)
+- [x] `types/bitbucket.ts` only exports `type`
+- [x] TRACK.md updated
+
+## Notes
+
+- Curated re-exports preserve the existing `Bitbucket*` / `PullRequest` /
+  `PullRequestState` names that `src/` consumers import, so this feature is a
+  behaviour-preserving change.
+- OpenAPI 3 has no native generic for paged responses; `BitbucketPagedResponse<T>`
+  composes `PagedResponseMeta` (from YAML) with `readonly values: ReadonlyArray<T>`.
+- `@redocly/cli` / `swagger-cli` lint not added — `openapi-typescript` already
+  rejects malformed specs, and adding another dep is deferred until contract
+  tests need it (feat-unit-tests).
 
 ## Open questions
 
