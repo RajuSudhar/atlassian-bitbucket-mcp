@@ -6,6 +6,8 @@ pull request reviews, code search, and repository operations.
 ## Features
 
 - **Pull Request Management**: Review PRs, add/resolve comments, approve changes
+- **Batched Reviews**: Queue comments and tasks as pending, then publish them in
+  one review — the API equivalent of Bitbucket's _Start review_ / _Finish review_
 - **Code Search**: Search code across repositories and commits
 - **Repository Operations**: List repos, browse branches, view file content
 - **Dual Instance Support**: Works with both Bitbucket Cloud and self-hosted Data Center/Server
@@ -13,6 +15,8 @@ pull request reviews, code search, and repository operations.
 - **Type-Safe**: Full TypeScript implementation with strict type checking
 - **Caching**: Smart caching layer for frequently accessed static data
 - **Local-First**: Designed for NPX-based local usage with Personal Access Tokens
+- **CI Helper**: `atlassian-bitbucket-mcp/helper` subpath export for direct
+  programmatic use in CI scripts — no MCP client required
 
 ## Requirements
 
@@ -34,10 +38,16 @@ cp .env.example .env
 Edit `.env` and set the required variables:
 
 ```env
-BITBUCKET_URL=https://bitbucket.org # or your self-hosted URL
-BITBUCKET_TOKEN=your_personal_access_token
-BITBUCKET_DEFAULT_PROJECT=PROJ # your default project key
+BITBUCKET_URL=https://bitbucket.juspay.net # Cloud: https://bitbucket.org
+BITBUCKET_TOKEN=BBDC-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+BITBUCKET_DEFAULT_PROJECT=BZ # your default project key
 ```
+
+For a self-hosted Server/DC instance, set `BITBUCKET_URL` to the base URL only
+(e.g. `https://bitbucket.juspay.net`) — the server appends `/rest/api/1.0`
+itself. A repo such as
+`https://bitbucket.juspay.net/projects/BZ/repos/nimble` has project key `BZ`
+and repo slug `nimble`.
 
 ### 2. Installation
 
@@ -62,14 +72,78 @@ Configure your MCP client (e.g., Claude Desktop) to use this server:
       "command": "npx",
       "args": ["-y", "atlassian-bitbucket-mcp"],
       "env": {
-        "BITBUCKET_URL": "https://bitbucket.org",
-        "BITBUCKET_TOKEN": "your_token_here",
-        "BITBUCKET_DEFAULT_PROJECT": "PROJ"
+        "BITBUCKET_URL": "https://bitbucket.juspay.net",
+        "BITBUCKET_TOKEN": "BBDC-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "BITBUCKET_DEFAULT_PROJECT": "BZ",
+        "BITBUCKET_ALLOWED_PROJECTS": "BZ",
+        "BITBUCKET_ALLOWED_REPOS": "BZ/nimble"
       }
     }
   }
 }
 ```
+
+`BITBUCKET_ALLOWED_PROJECTS` and `BITBUCKET_ALLOWED_REPOS` are optional — omit
+them to allow all projects/repos the token can access, or set them to restrict
+the server to specific scopes.
+
+This is the **stdio** transport: the MCP client launches the server per session.
+No port is involved.
+
+### 5. Run as an HTTP MCP (local service)
+
+The server can instead run as a long-lived **Streamable HTTP** server and be
+registered as a Claude HTTP MCP. Set `MCP_TRANSPORT=http` and it listens on
+`http://127.0.0.1:3900/mcp` (configurable via `MCP_HTTP_PORT` / `MCP_HTTP_HOST`;
+`GET /health` returns a readiness probe). Set `MCP_TRANSPORT=https` to serve
+the same endpoint over TLS — see below.
+
+> Security: the HTTP endpoint is unauthenticated and sits in front of your
+> Bitbucket token — keep `MCP_HTTP_HOST` on loopback (`127.0.0.1`) and never
+> expose it to a network interface.
+
+On macOS, install it as an always-on login service (launchd LaunchAgent):
+
+```bash
+# Builds, installs globally, writes ~/.config/bitbucket-mcp/env (chmod 600),
+# and loads a LaunchAgent bound to 127.0.0.1:3900.
+./scripts/install-macos-service.sh
+# then put your real BITBUCKET_TOKEN in ~/.config/bitbucket-mcp/env and:
+launchctl kickstart -k gui/$(id -u)/com.juspay.bitbucket-mcp
+```
+
+Register it with Claude (available in every project):
+
+```bash
+claude mcp add --scope user --transport http bitbucket http://127.0.0.1:3900/mcp
+claude mcp list # bitbucket ... ✔ Connected
+```
+
+**Serving over TLS (`MCP_TRANSPORT=https`).** The HTTP transport can serve TLS
+itself: set `MCP_TRANSPORT=https` plus `MCP_HTTP_TLS_CERT_FILE` and
+`MCP_HTTP_TLS_KEY_FILE` (paths to PEM files — both are required in `https` mode
+and ignored otherwise). Everything else (`/mcp` endpoint, sessions, `/health`)
+is identical to `http` mode. For a locally-trusted certificate, use
+[mkcert](https://github.com/FiloSottile/mkcert):
+
+```bash
+mkcert -install && mkcert localhost 127.0.0.1
+```
+
+```env
+MCP_TRANSPORT=https
+MCP_HTTP_TLS_CERT_FILE=/absolute/path/to/localhost+1.pem
+MCP_HTTP_TLS_KEY_FILE=/absolute/path/to/localhost+1-key.pem
+```
+
+> TLS adds encryption, not authentication — the endpoint is still
+> unauthenticated, so keep `MCP_HTTP_HOST` on loopback in `https` mode too.
+
+**Self-hosted TLS / internal CA.** If your Bitbucket uses an internal CA, the
+outbound HTTPS calls need to trust it. Set `NODE_EXTRA_CA_CERTS=/path/to/ca.pem`
+in the env-file. Avoid Node's `--use-system-ca` for the background service — it
+hangs under launchd because macOS keychain access requires an interactive
+session. (`--use-system-ca` is fine for a foreground/stdio run.)
 
 ## Configuration
 
@@ -92,6 +166,11 @@ All configuration is done through environment variables. See [`.env.example`](./
   all). Each entry is `PROJECT/REPO` or a bare `REPO` slug. Case-insensitive.
 - `BITBUCKET_CACHE_ENABLED` - Enable/disable caching (default: true)
 - `BITBUCKET_CACHE_TTL_REPOS` - Repository cache TTL in seconds (default: 3600)
+- `MCP_TRANSPORT` - `stdio` (default), `http`, or `https`
+- `MCP_HTTP_PORT` / `MCP_HTTP_HOST` - HTTP transport bind (default `3900` / `127.0.0.1`)
+- `MCP_HTTP_TLS_CERT_FILE` / `MCP_HTTP_TLS_KEY_FILE` - PEM certificate/key
+  paths, both required when `MCP_TRANSPORT=https` (ignored otherwise)
+- `NODE_EXTRA_CA_CERTS` - PEM path for a self-hosted internal CA (outbound TLS)
 - See [`.env.example`](./.env.example) for all options
 
 ### Creating a Personal Access Token
@@ -125,12 +204,37 @@ This server provides the following tools for interacting with Bitbucket:
 - `bitbucket_get_pr_diff` - Get PR changes/diff
 - `bitbucket_get_pr_commits` - Get commits in a PR
 - `bitbucket_get_pr_activities` - Get PR comments and activities
-- `bitbucket_add_pr_comment` - Add a general comment
-- `bitbucket_add_pr_inline_comment` - Add inline code comment
-- `bitbucket_reply_to_comment` - Reply to a comment
+- `bitbucket_add_pr_comment` - Add a general comment (`pending: true` queues it
+  in your review session instead of posting it)
+- `bitbucket_add_pr_inline_comment` - Add a per-file, per-line inline code
+  comment on any author's PR (`path` + `line` + `lineType`; `diffType` defaults
+  to `EFFECTIVE` on Server/DC; supports `pending`)
+- `bitbucket_reply_to_comment` - Reply to a comment (supports `pending`)
 - `bitbucket_resolve_comment` - Resolve a comment thread
 - `bitbucket_update_comment` - Edit a comment
+- `bitbucket_update_pull_request` - Update a PR's title and/or description
+  (Server/DC only, requires current `version` for optimistic locking)
 - `bitbucket_approve_pr` - Approve a pull request
+- `bitbucket_create_pr_task` - Create a checklist task (blocker-severity
+  comment) on a PR, optionally as a reply to an existing comment (Server/DC
+  only; supports `pending`)
+- `bitbucket_list_pr_tasks` - List checklist tasks on a PR (Server/DC only)
+- `bitbucket_resolve_pr_task` - Set a task to `OPEN` or `RESOLVED` (Server/DC
+  only)
+- `bitbucket_delete_pr_task` - Delete a task (Server/DC only)
+
+### PR Review Session Tools
+
+Server/DC 7.7+ only. See [Batched reviews](#batched-reviews-start-review--finish-review).
+
+- `bitbucket_start_pr_review` - Begin a batched review: reports what is already
+  pending in your session and how to add more
+- `bitbucket_get_pr_review` - List the pending, unpublished comments in your
+  session (visible only to you)
+- `bitbucket_publish_pr_review` - Publish every pending comment at once, with an
+  optional overview `commentText` and reviewer `participantStatus`
+- `bitbucket_discard_pr_review` - Delete every pending comment without notifying
+  the author
 
 ### Repository Tools
 
@@ -147,6 +251,88 @@ This server provides the following tools for interacting with Bitbucket:
 - `bitbucket_search_commits` - Search commits by message
 
 See [docs/TOOLS.md](docs/TOOLS.md) for detailed tool documentation (coming soon).
+
+## Batched reviews (Start review / Finish review)
+
+Bitbucket Server/DC 7.7+ lets a reviewer queue feedback privately and release it
+in one go — **Start review**, then **Publish** or **Discard review** in the web
+UI. The server models this as comments in `PENDING` state, scoped to
+`(pull request, authenticated user)`, so the same session is shared by the web
+UI and this MCP server and survives restarts of either.
+
+There is no "start review" endpoint: Bitbucket opens the session the moment you
+create the first pending comment, and closes it on publish or discard.
+
+```text
+bitbucket_start_pr_review        # optional: shows what is already pending
+  ↓
+bitbucket_add_pr_inline_comment  { ..., pending: true }   # repeat as needed
+bitbucket_create_pr_task         { ..., pending: true }
+  ↓
+bitbucket_get_pr_review          # read back everything queued, edit if needed
+  ↓
+bitbucket_publish_pr_review      { commentText?, participantStatus? }
+   or bitbucket_discard_pr_review
+```
+
+Notes:
+
+- `pending` defaults to `false`, so every existing call site keeps posting
+  immediately. Nothing changes unless you opt in.
+- Pending comments are invisible to the PR author and to other reviewers until
+  published; `bitbucket_get_pr_activities` will not show them.
+- Queued comments can be edited (`bitbucket_update_comment`) or deleted while
+  still pending — a pending comment carries an ordinary comment `id`/`version`.
+- `bitbucket_publish_pr_review` returns `{ "publishedCommentCount": N }`.
+  `participantStatus` is one of `UNAPPROVED`, `NEEDS_WORK`, `APPROVED`; omit it
+  to publish without changing your verdict. Supplying it requires the
+  `manage_pr` action, since it changes approval state.
+- `bitbucket_discard_pr_review` deletes all pending comments for the PR — it is
+  not undoable, and the author is never notified.
+- On Bitbucket Cloud, and on Server/DC older than 7.7, the `/review` endpoints
+  do not exist and these four tools return a `404`-derived error.
+
+## Programmatic usage (CI)
+
+Besides running as an MCP server, the package exposes the Bitbucket API layer
+directly as a library via the `atlassian-bitbucket-mcp/helper` subpath export —
+useful for CI jobs that need to comment on a PR without an MCP client in the
+loop. There is no permission or scope gating on this path: the script holds the
+token, so it can do whatever the token can.
+
+```js
+import { createBitbucketHelper } from 'atlassian-bitbucket-mcp/helper';
+
+// Explicit options override env; anything omitted falls back to
+// BITBUCKET_URL / BITBUCKET_TOKEN / BITBUCKET_DEFAULT_PROJECT.
+const helper = createBitbucketHelper({
+  url: 'https://bitbucket.juspay.net',
+  token: process.env.BITBUCKET_TOKEN,
+  defaultProject: 'BZ',
+});
+
+const pr = await helper.pullRequests.get('BZ', 'nimble', 42);
+await helper.pullRequests.addComment('BZ', 'nimble', 42, `CI passed for "${pr.title}"`);
+```
+
+Notes:
+
+- `helper.pullRequests`, `helper.repositories` and `helper.search` group the
+  API by resource — the same operations as the MCP tools (list/get PRs, diffs,
+  commits, comments, tasks, review sessions, approve, branches, file content,
+  code/commit search). Every method is pre-bound, so destructuring is safe
+  (`const { addComment } = helper.pullRequests`).
+- `helper.client` is the escape hatch for raw REST calls
+  (`client.requestJson(endpoint, { method, body, queryParams })`);
+  `helper.config` is the resolved effective config — it contains the token, so
+  never log or serialize it.
+- Error classes (`BitbucketApiError`, `NetworkError`, `TimeoutError`) and the
+  relevant Bitbucket types are re-exported from the same subpath for
+  `instanceof` checks and typing.
+- Optional tuning: `requestTimeout`, `maxRetries`, `rateLimitDelay` options (or
+  `BITBUCKET_REQUEST_TIMEOUT` / `BITBUCKET_MAX_RETRIES` /
+  `BITBUCKET_RATE_LIMIT_DELAY`). Caching is always disabled in helper mode.
+- The package is ESM-only (`"type": "module"`) — use `import`, not `require`.
 
 ## Development
 

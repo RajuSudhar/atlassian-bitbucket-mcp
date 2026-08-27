@@ -1,6 +1,6 @@
 # TRACK — Atlassian Bitbucket MCP
 
-Last updated: 2026-07-20
+Last updated: 2026-08-26
 
 ## Status legend
 
@@ -46,8 +46,19 @@ Last updated: 2026-07-20
 — `BITBUCKET_ALLOWED_PROJECTS` / `BITBUCKET_ALLOWED_REPOS` allow-lists +
 `requireScope` enforcement on every project/repo-scoped tool
 [ ] feat-inline-comment-hardening — `diffType` on `bitbucket_add_pr_inline_comment`
-[ ] feat-http-transport — Streamable HTTP transport
-[ ] feat-pr-tasks → docs/plans/phase-6/feat-pr-tasks/plan.md — create/list/resolve/delete PR tasks
+[x] feat-http-transport → docs/plans/phase-6/feat-http-transport/plan.md —
+Streamable HTTP transport (`MCP_TRANSPORT=http`), including TLS mode
+(`MCP_TRANSPORT=https` + `MCP_HTTP_TLS_CERT_FILE`/`MCP_HTTP_TLS_KEY_FILE`)
+[x] feat-ci-helper-exports → docs/plans/phase-6/feat-ci-helper-exports/plan.md —
+`atlassian-bitbucket-mcp/helper` subpath export: `createBitbucketHelper()` for
+direct typed API use in CI scripts (no MCP protocol, no permission gating)
+[x] feat-pr-tasks → docs/plans/phase-6/feat-pr-tasks/plan.md — create/list/resolve/delete PR tasks
+[~] feat-pr-tasks-blocker-comments → docs/plans/phase-6/feat-pr-tasks-blocker-comments/ — fix root BLOCKER task enumeration via /blocker-comments endpoint + add state filter (OPEN/RESOLVED/ALL)
+[x] feat-update-pr → docs/plans/phase-6/feat-update-pr/plan.md — update PR title/description
+[~] feat-update-pr-preserve-reviewers → docs/plans/phase-6/feat-update-pr-preserve-reviewers/ — fix reviewer-wipe bug via GET-then-PUT with auto version management
+[x] feat-pr-review-sessions → docs/plans/phase-6/feat-pr-review-sessions/plan.md —
+batched reviews (start/publish/discard) via `state: PENDING` comments +
+`/pull-requests/{id}/review`; `pending` flag on the 4 comment/task tools
 
 ## Done (across branches)
 
