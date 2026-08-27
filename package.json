@@ -3,6 +3,17 @@
   "version": "0.1.0",
   "description": "Model Context Protocol (MCP) server for Atlassian Bitbucket integration",
   "main": "dist/src/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./helper": {
+      "types": "./dist/src/helper.d.ts",
+      "default": "./dist/src/helper.js"
+    },
+    "./package.json": "./package.json"
+  },
   "bin": {
     "atlassian-bitbucket-mcp": "dist/src/index.js"
   },
