@@ -14,7 +14,180 @@ servers:
     variables:
       baseUrl:
         default: https://bitbucket.example.com
-paths: {}
+paths:
+  /projects/{project}/repos/{repo}/pull-requests/{prId}/blocker-comments:
+    get:
+      summary: List blocker comments (root + reply) for a pull request
+      description: |
+        Returns ALL BLOCKER-severity comments (root-level and nested replies)
+        for a pull request. Supports optional state filtering and pagination.
+        Requires Bitbucket Server/DC 7.2+.
+      operationId: getBlockerComments
+      parameters:
+        - name: project
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Project key
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Repository slug
+        - name: prId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Pull request ID
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [OPEN, RESOLVED]
+          description: Filter tasks by state (OPEN or RESOLVED); omit for all states
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 25
+          description: Maximum results per page
+        - name: start
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Pagination offset
+      responses:
+        '200':
+          description: Paginated list of BLOCKER comments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponseMeta'
+                  - type: object
+                    required:
+                      - values
+                    properties:
+                      values:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Comment'
+        '404':
+          description: Pull request not found or endpoint not supported (Server/DC < 7.2)
+  /projects/{project}/repos/{repo}/pull-requests/{prId}/review:
+    parameters:
+      - name: project
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Project key
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Repository slug
+      - name: prId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Pull request ID
+    get:
+      summary: List the pending (unpublished) comment threads in the caller's review
+      description: |
+        Returns the comment threads whose comments are in `PENDING` state and
+        belong to the authenticated user's in-progress review of this pull
+        request. Pending comments are visible only to their author until the
+        review is published. Requires Bitbucket Server/DC 7.7+.
+
+        A review session has no explicit "start" endpoint: Bitbucket opens one
+        implicitly when the first `PENDING` comment is created via
+        `POST .../pull-requests/{prId}/comments` with `state: PENDING`.
+      operationId: getPullRequestReview
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 25
+          description: Maximum results per page
+        - name: start
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Pagination offset
+      responses:
+        '200':
+          description: Paginated list of pending comment threads
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponseMeta'
+                  - type: object
+                    required:
+                      - values
+                    properties:
+                      values:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Comment'
+        '404':
+          description: Pull request not found or endpoint not supported (Server/DC < 7.7)
+    put:
+      summary: Publish the caller's review (finish review)
+      description: |
+        Publishes every `PENDING` comment in the authenticated user's review in
+        one batch, optionally adding an overview comment and setting the
+        caller's participant status. Requires Bitbucket Server/DC 7.7+.
+      operationId: publishPullRequestReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishReviewRequest'
+      responses:
+        '200':
+          description: Review published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishReviewResult'
+        '400':
+          description: Missing request body or invalid participant status
+        '404':
+          description: No review in progress for the caller, or PR not found
+    delete:
+      summary: Discard the caller's review
+      description: |
+        Deletes every `PENDING` comment in the authenticated user's review
+        without notifying the pull request author. Requires Bitbucket
+        Server/DC 7.7+.
+      operationId: discardPullRequestReview
+      responses:
+        '204':
+          description: Review discarded
+        '404':
+          description: Pull request not found or endpoint not supported (Server/DC < 7.7)
 components:
   schemas:
     User:
@@ -138,6 +311,7 @@ components:
         - toRef
         - createdDate
         - updatedDate
+        - version
       properties:
         id:
           type: integer
@@ -157,6 +331,8 @@ components:
           $ref: '#/components/schemas/Ref'
         toRef:
           $ref: '#/components/schemas/Ref'
+        version:
+          type: integer
         createdDate:
           type: integer
           format: int64
@@ -223,7 +399,23 @@ components:
       enum: [NORMAL, BLOCKER]
     CommentState:
       type: string
-      enum: [OPEN, RESOLVED]
+      # PENDING marks a comment that is part of an unpublished review — visible
+      # only to its author until the review is published (Server/DC 7.7+).
+      enum: [OPEN, RESOLVED, PENDING]
+    PublishReviewRequest:
+      type: object
+      properties:
+        commentText:
+          type: string
+          description: Optional overview comment posted alongside the review
+        participantStatus:
+          $ref: '#/components/schemas/ParticipantStatus'
+    PublishReviewResult:
+      type: object
+      required: [publishedCommentCount]
+      properties:
+        publishedCommentCount:
+          type: integer
     LineType:
       type: string
       enum: [ADDED, REMOVED, CONTEXT]

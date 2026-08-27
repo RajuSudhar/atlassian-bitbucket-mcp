@@ -29,6 +29,17 @@ export type BitbucketCommit = ServerSchemas['Commit'];
 export type BitbucketComment = ServerSchemas['Comment'];
 export type BitbucketCommentAnchor = ServerSchemas['CommentAnchor'];
 export type BitbucketActivity = ServerSchemas['Activity'];
+export type BitbucketCommentState = ServerSchemas['CommentState'];
+
+/**
+ * Task states. Tasks are BLOCKER-severity comments, and unlike ordinary
+ * comments they are never `PENDING` in this codebase — only OPEN/RESOLVED
+ * transitions are exposed.
+ */
+export type BitbucketTaskState = Exclude<BitbucketCommentState, 'PENDING'>;
+
+export type BitbucketParticipantStatus = ServerSchemas['ParticipantStatus'];
+export type BitbucketPublishReviewResult = ServerSchemas['PublishReviewResult'];
 
 export type BitbucketDiff = ServerSchemas['Diff'];
 export type BitbucketDiffEntry = ServerSchemas['DiffEntry'];
