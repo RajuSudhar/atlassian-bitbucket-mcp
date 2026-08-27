@@ -9,14 +9,18 @@ import { requirePermission, requireScope } from '../permissions.js';
 import {
   addPrCommentShape,
   addPrInlineCommentShape,
+  createPrTaskShape,
+  deletePrTaskShape,
   discardPrReviewShape,
   getPrReviewShape,
   listPullRequestsShape,
+  listTasksShape,
   prPaginatedShape,
   prRefShape,
   publishPrReviewShape,
   replyToCommentShape,
   resolveCommentShape,
+  resolvePrTaskShape,
   startPrReviewShape,
   updateCommentShape,
   updatePullRequestShape,
@@ -416,6 +420,142 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
           'UPDATE_PULL_REQUEST_FAILED',
           err instanceof Error ? err.message : String(err)
         );
+      }
+    },
+
+    bitbucket_create_pr_task: async (args: unknown): Promise<McpToolResult> => {
+      const start = Date.now();
+      try {
+        const input = z.object(createPrTaskShape).parse(args);
+        requirePermission(config, 'write_pr');
+        requireScope(config, input.project, input.repo);
+        log('info', 'tool start', {
+          operation: 'tool_execute',
+          toolName: 'bitbucket_create_pr_task',
+        });
+        const result = await prApi.createTask(
+          input.project,
+          input.repo,
+          input.prId,
+          input.text,
+          input.parentCommentId,
+          input.pending
+        );
+        invalidatePrCache(cache, config, input.project, input.repo, input.prId);
+        log('info', 'tool end', {
+          toolName: 'bitbucket_create_pr_task',
+          durationMs: Date.now() - start,
+        });
+        return textResult(result);
+      } catch (err) {
+        log('error', 'tool error', {
+          toolName: 'bitbucket_create_pr_task',
+          error: String(err),
+          durationMs: Date.now() - start,
+        });
+        return errorResult('CREATE_TASK_FAILED', err instanceof Error ? err.message : String(err));
+      }
+    },
+
+    bitbucket_list_pr_tasks: async (args: unknown): Promise<McpToolResult> => {
+      const start = Date.now();
+      try {
+        const input = z.object(listTasksShape).parse(args);
+        requirePermission(config, 'read_pr');
+        requireScope(config, input.project, input.repo);
+        log('info', 'tool start', {
+          operation: 'tool_execute',
+          toolName: 'bitbucket_list_pr_tasks',
+          state: input.state,
+        });
+
+        const stateParam: 'OPEN' | 'RESOLVED' | undefined =
+          input.state === 'ALL' ? undefined : input.state;
+
+        const result = await prApi.listTasks(
+          input.project,
+          input.repo,
+          input.prId,
+          stateParam,
+          input.limit,
+          input.start
+        );
+
+        log('info', 'tool end', {
+          toolName: 'bitbucket_list_pr_tasks',
+          state: input.state,
+          resultCount: result.length,
+          durationMs: Date.now() - start,
+        });
+        return textResult(result);
+      } catch (err) {
+        log('error', 'tool error', {
+          toolName: 'bitbucket_list_pr_tasks',
+          error: String(err),
+          durationMs: Date.now() - start,
+        });
+        return errorResult('LIST_TASKS_FAILED', err instanceof Error ? err.message : String(err));
+      }
+    },
+
+    bitbucket_resolve_pr_task: async (args: unknown): Promise<McpToolResult> => {
+      const start = Date.now();
+      try {
+        const input = z.object(resolvePrTaskShape).parse(args);
+        requirePermission(config, 'write_pr');
+        requireScope(config, input.project, input.repo);
+        log('info', 'tool start', {
+          operation: 'tool_execute',
+          toolName: 'bitbucket_resolve_pr_task',
+        });
+        const result = await prApi.setTaskState(
+          input.project,
+          input.repo,
+          input.prId,
+          input.taskId,
+          input.state,
+          input.version
+        );
+        invalidatePrCache(cache, config, input.project, input.repo, input.prId);
+        log('info', 'tool end', {
+          toolName: 'bitbucket_resolve_pr_task',
+          durationMs: Date.now() - start,
+        });
+        return textResult(result);
+      } catch (err) {
+        log('error', 'tool error', {
+          toolName: 'bitbucket_resolve_pr_task',
+          error: String(err),
+          durationMs: Date.now() - start,
+        });
+        return errorResult('RESOLVE_TASK_FAILED', err instanceof Error ? err.message : String(err));
+      }
+    },
+
+    bitbucket_delete_pr_task: async (args: unknown): Promise<McpToolResult> => {
+      const start = Date.now();
+      try {
+        const input = z.object(deletePrTaskShape).parse(args);
+        requirePermission(config, 'write_pr');
+        requireScope(config, input.project, input.repo);
+        log('info', 'tool start', {
+          operation: 'tool_execute',
+          toolName: 'bitbucket_delete_pr_task',
+        });
+        await prApi.deleteTask(input.project, input.repo, input.prId, input.taskId, input.version);
+        invalidatePrCache(cache, config, input.project, input.repo, input.prId);
+        log('info', 'tool end', {
+          toolName: 'bitbucket_delete_pr_task',
+          durationMs: Date.now() - start,
+        });
+        return textResult({ deleted: true, taskId: input.taskId });
+      } catch (err) {
+        log('error', 'tool error', {
+          toolName: 'bitbucket_delete_pr_task',
+          error: String(err),
+          durationMs: Date.now() - start,
+        });
+        return errorResult('DELETE_TASK_FAILED', err instanceof Error ? err.message : String(err));
       }
     },
 

@@ -99,6 +99,41 @@ export const updatePullRequestShape = {
     .describe('PR version for optimistic locking (auto-fetched if omitted)'),
 } as const;
 
+export const createPrTaskShape = {
+  ...prRefShape,
+  text: z.string().min(1).describe('Task text'),
+  parentCommentId: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Comment ID to anchor the task to as a reply; omit for a top-level PR task'),
+  pending,
+} as const;
+
+export const resolvePrTaskShape = {
+  ...prRefShape,
+  taskId: z.coerce.number().int().positive().describe('Task (comment) ID'),
+  state: z.enum(['OPEN', 'RESOLVED']).describe('New task state'),
+  version: z.coerce.number().int().nonnegative().describe('Task version for optimistic locking'),
+} as const;
+
+export const deletePrTaskShape = {
+  ...prRefShape,
+  taskId: z.coerce.number().int().positive().describe('Task (comment) ID to delete'),
+  version: z.coerce.number().int().nonnegative().describe('Task version for optimistic locking'),
+} as const;
+
+export const listTasksShape = {
+  ...prRefShape,
+  state: z
+    .enum(['OPEN', 'RESOLVED', 'ALL'])
+    .default('ALL')
+    .describe('Filter tasks by state: OPEN, RESOLVED, or ALL (default)'),
+  limit,
+  start,
+} as const;
+
 // --- PR review sessions (batched review) ---------------------------------
 
 export const startPrReviewShape = { ...prRefShape } as const;

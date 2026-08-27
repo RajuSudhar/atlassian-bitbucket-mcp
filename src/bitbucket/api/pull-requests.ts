@@ -19,6 +19,7 @@ import type {
   BitbucketPagedResponse,
   BitbucketParticipantStatus,
   BitbucketPublishReviewResult,
+  BitbucketTaskState,
   PullRequest,
 } from '@types';
 
@@ -238,6 +239,156 @@ export class PullRequestApi {
     return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/approve`,
       { method: 'POST' }
+    );
+  }
+
+  // Bitbucket Server/DC deprecated the legacy `/tasks` resource in favor of
+  // modeling tasks as comments with severity BLOCKER (confirmed live: the
+  // legacy endpoint 400s with "Tasks are now managed using Comments with
+  // severity BLOCKER"). A "task" is therefore just a comment whose severity
+  // is BLOCKER; state transitions and deletion reuse the comment resource.
+  /** `pending: true` holds the task in the caller's unpublished review. */
+  async createTask(
+    project: string,
+    repo: string,
+    prId: number,
+    text: string,
+    parentCommentId?: number,
+    pending = false
+  ): Promise<BitbucketComment> {
+    return this.client.requestJson<BitbucketComment>(
+      `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments`,
+      {
+        method: 'POST',
+        body: {
+          text,
+          severity: 'BLOCKER',
+          ...(parentCommentId !== undefined ? { parent: { id: parentCommentId } } : {}),
+          ...(pending ? { state: PENDING_STATE } : {}),
+        },
+      }
+    );
+  }
+
+  /** Blocker-severity comments (tasks), fetched via dedicated blocker-comments endpoint with pagination. */
+  async listTasks(
+    project: string,
+    repo: string,
+    prId: number,
+    state?: 'OPEN' | 'RESOLVED',
+    limit = 25,
+    start = 0
+  ): Promise<BitbucketComment[]> {
+    const MAX_PAGES = 100;
+
+    log('debug', 'listTasks start', {
+      operation: 'list_blocker_comments',
+      project,
+      repo,
+      prId,
+      state: state ?? 'ALL',
+      limit,
+    });
+
+    const allTasks: BitbucketComment[] = [];
+    let currentStart = start;
+    let isLastPage = false;
+    let pageCount = 0;
+
+    while (!isLastPage) {
+      if (pageCount >= MAX_PAGES) {
+        log('warn', 'listTasks pagination circuit breaker triggered', {
+          operation: 'list_blocker_comments',
+          maxPages: MAX_PAGES,
+          currentPage: pageCount,
+          issue: 'max page limit reached, terminating loop',
+        });
+        break;
+      }
+
+      const queryParams: Record<string, string | number> = { limit, start: currentStart };
+      if (state !== undefined) {
+        queryParams.state = state;
+      }
+
+      const page = await this.client.requestJson<BitbucketPagedResponse<BitbucketComment>>(
+        `/projects/${project}/repos/${repo}/pull-requests/${prId}/blocker-comments`,
+        { queryParams }
+      );
+
+      pageCount++;
+      log('debug', 'listTasks page fetched', {
+        operation: 'list_blocker_comments',
+        page: pageCount,
+        pageSize: page.values.length,
+        start: currentStart,
+        isLastPage: page.isLastPage,
+      });
+
+      allTasks.push(...page.values.filter((comment) => comment.severity === 'BLOCKER'));
+      isLastPage = page.isLastPage;
+      currentStart = page.nextPageStart ?? currentStart;
+
+      if (!isLastPage && page.nextPageStart === undefined) {
+        log('warn', 'listTasks pagination inconsistency', {
+          operation: 'list_blocker_comments',
+          issue: 'isLastPage=false but nextPageStart undefined, terminating loop',
+        });
+        break;
+      }
+    }
+
+    let filtered = allTasks;
+    if (state !== undefined) {
+      const preFilterCount = filtered.length;
+      filtered = filtered.filter((comment) => comment.state === state);
+      if (filtered.length < preFilterCount) {
+        log('debug', 'listTasks client-side filter applied', {
+          operation: 'list_blocker_comments',
+          state,
+          beforeCount: preFilterCount,
+          afterCount: filtered.length,
+        });
+      }
+    }
+
+    log('info', 'listTasks complete', {
+      operation: 'list_blocker_comments',
+      project,
+      repo,
+      prId,
+      state: state ?? 'ALL',
+      totalTasks: filtered.length,
+      pagesRead: pageCount,
+    });
+
+    return filtered;
+  }
+
+  async setTaskState(
+    project: string,
+    repo: string,
+    prId: number,
+    commentId: number,
+    state: BitbucketTaskState,
+    version: number
+  ): Promise<BitbucketComment> {
+    return this.client.requestJson<BitbucketComment>(
+      `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments/${commentId}`,
+      { method: 'PUT', body: { state, version } }
+    );
+  }
+
+  async deleteTask(
+    project: string,
+    repo: string,
+    prId: number,
+    commentId: number,
+    version: number
+  ): Promise<void> {
+    await this.client.request<void>(
+      `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments/${commentId}`,
+      { method: 'DELETE', queryParams: { version } }
     );
   }
 

@@ -9,11 +9,14 @@
 import {
   addPrCommentShape,
   addPrInlineCommentShape,
+  createPrTaskShape,
+  deletePrTaskShape,
   discardPrReviewShape,
   getFileContentShape,
   getPrReviewShape,
   listProjectsShape,
   listPullRequestsShape,
+  listTasksShape,
   prPaginatedShape,
   prRefShape,
   projectListShape,
@@ -22,6 +25,7 @@ import {
   repoPaginatedShape,
   repoRefShape,
   resolveCommentShape,
+  resolvePrTaskShape,
   searchCodeShape,
   searchCommitsShape,
   startPrReviewShape,
@@ -135,6 +139,33 @@ export function buildToolRegistry(h: ToolHandlers): ReadonlyArray<ToolDefinition
       shape: prRefShape,
       handler: h.pr.bitbucket_approve_pr,
     },
+    {
+      name: 'bitbucket_create_pr_task',
+      description:
+        'Create a checklist task (blocker) on a pull request, optionally as a reply to an existing comment; set pending: true to queue it in the current review session',
+      shape: createPrTaskShape,
+      handler: h.pr.bitbucket_create_pr_task,
+    },
+    {
+      name: 'bitbucket_list_pr_tasks',
+      description:
+        'List all BLOCKER-severity tasks (comments) for a pull request, with optional state filter (OPEN, RESOLVED, or ALL)',
+      shape: listTasksShape,
+      handler: h.pr.bitbucket_list_pr_tasks,
+    },
+    {
+      name: 'bitbucket_resolve_pr_task',
+      description: 'Set a pull request task to OPEN or RESOLVED',
+      shape: resolvePrTaskShape,
+      handler: h.pr.bitbucket_resolve_pr_task,
+    },
+    {
+      name: 'bitbucket_delete_pr_task',
+      description: 'Delete a pull request task',
+      shape: deletePrTaskShape,
+      handler: h.pr.bitbucket_delete_pr_task,
+    },
+
     // --- PR review sessions (batched review, Server/DC 7.7+) ---
     {
       name: 'bitbucket_start_pr_review',
