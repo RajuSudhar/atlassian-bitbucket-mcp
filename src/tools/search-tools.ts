@@ -5,7 +5,7 @@
 import { z } from 'zod';
 
 import { log } from '../logger.js';
-import { requirePermission } from '../permissions.js';
+import { requirePermission, requireScope } from '../permissions.js';
 import { searchCodeShape, searchCommitsShape } from './schemas.js';
 
 import type { SearchApi } from '../bitbucket/api/search.js';
@@ -29,6 +29,7 @@ export function createSearchTools(searchApi: SearchApi, config: Config) {
       try {
         const input = z.object(searchCodeShape).parse(args);
         requirePermission(config, 'search_code');
+        requireScope(config, input.project);
         log('info', 'tool start', { operation: 'tool_execute', toolName: 'bitbucket_search_code' });
         const result = await searchApi.searchCode(
           input.project,
@@ -56,6 +57,7 @@ export function createSearchTools(searchApi: SearchApi, config: Config) {
       try {
         const input = z.object(searchCommitsShape).parse(args);
         requirePermission(config, 'search_code');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_search_commits',

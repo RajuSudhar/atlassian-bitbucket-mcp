@@ -35,7 +35,8 @@
     "sync:locks": "./scripts/sync-lock-files.sh",
     "types:gen": "./scripts/gen-types.sh",
     "types:check-drift": "./scripts/check-types-drift.sh",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "pretest": "pnpm run build",
+    "test": "node --test test/*.test.mjs"
   },
   "keywords": [
     "mcp",

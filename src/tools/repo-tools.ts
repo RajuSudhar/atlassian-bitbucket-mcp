@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 import { cacheKey } from '../cache.js';
 import { log } from '../logger.js';
-import { requirePermission } from '../permissions.js';
+import { requirePermission, requireScope } from '../permissions.js';
 import {
   getFileContentShape,
   listProjectsShape,
@@ -81,6 +81,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
       try {
         const input = z.object(projectListShape).parse(args);
         requirePermission(config, 'read_repo');
+        requireScope(config, input.project);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_list_repositories',
@@ -122,6 +123,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
       try {
         const input = z.object(repoRefShape).parse(args);
         requirePermission(config, 'read_repo');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_get_repository',
@@ -159,6 +161,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
       try {
         const input = z.object(repoPaginatedShape).parse(args);
         requirePermission(config, 'read_repo');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_get_branches',
@@ -189,6 +192,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
       try {
         const input = z.object(repoPaginatedShape).parse(args);
         requirePermission(config, 'read_repo');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', { operation: 'tool_execute', toolName: 'bitbucket_get_commits' });
         const result = await repoApi.getCommits(
           input.project,
@@ -216,6 +220,7 @@ export function createRepoTools(repoApi: RepositoryApi, config: Config, cache: C
       try {
         const input = z.object(getFileContentShape).parse(args);
         requirePermission(config, 'read_repo');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_get_file_content',

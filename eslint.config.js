@@ -83,6 +83,15 @@ export default tseslint.config(
     },
   },
   {
+    // Test files run on Node's built-in test runner as plain ESM.
+    files: ['test/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+      },
+    },
+  },
+  {
     ignores: ['dist/', 'node_modules/', '*.config.js'],
   }
 );

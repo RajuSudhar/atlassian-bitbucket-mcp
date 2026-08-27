@@ -25,12 +25,21 @@ Declarative permission gate evaluated before any tool calls the client.
 - Comma-separated, whitespace-tolerant parser with strict membership check.
 - Unknown action in env var → fail-fast at config load.
 
+## Follow-up (phase 6): project/repo scoping
+
+- `BITBUCKET_ALLOWED_PROJECTS` / `BITBUCKET_ALLOWED_REPOS` parsed in `config.ts`
+  into normalized lowercase sets (empty = all allowed).
+- `requireScope(config, project, repo?)` + `ScopeDeniedError` in
+  `src/permissions.ts`, called after `requirePermission` in every
+  project/repo-scoped tool. Repo entries match `project/repo` or a bare `repo`.
+
 ## Tasks
 
 - [x] `types/permissions.ts` — `Action` union
 - [x] parser + validation in `config.ts`
 - [x] `requirePermission` helper used by every tool
-- [ ] tests: parse, reject unknown, enforce on each tool category
+- [x] tests: parse, reject unknown, enforce permission + scope
+      (`test/config.test.mjs`, `test/permissions.test.mjs`)
 
 ## Definition of done
 

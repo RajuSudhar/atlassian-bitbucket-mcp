@@ -23,6 +23,8 @@ const envSchema = z.object({
   BITBUCKET_TOKEN: z.string().min(1, 'BITBUCKET_TOKEN is required'),
   BITBUCKET_DEFAULT_PROJECT: z.string().min(1, 'BITBUCKET_DEFAULT_PROJECT is required'),
   BITBUCKET_ALLOWED_ACTIONS: z.string().optional().default(''),
+  BITBUCKET_ALLOWED_PROJECTS: z.string().optional().default(''),
+  BITBUCKET_ALLOWED_REPOS: z.string().optional().default(''),
   BITBUCKET_CACHE_ENABLED: z
     .string()
     .optional()
@@ -56,6 +58,19 @@ function parseAllowedActions(raw: string): ReadonlySet<Action> {
   return new Set(actions as Action[]);
 }
 
+/**
+ * Parse a comma-separated allow-list into a normalized lowercase set.
+ * Empty / unset → empty set, which callers interpret as "all allowed".
+ */
+function parseScopeList(raw: string): ReadonlySet<string> {
+  return new Set(
+    raw
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
 export function loadConfig(): Config {
   const parsed = envSchema.parse(process.env);
 
@@ -64,6 +79,8 @@ export function loadConfig(): Config {
     bitbucketToken: parsed.BITBUCKET_TOKEN,
     defaultProject: parsed.BITBUCKET_DEFAULT_PROJECT,
     allowedActions: parseAllowedActions(parsed.BITBUCKET_ALLOWED_ACTIONS),
+    allowedProjects: parseScopeList(parsed.BITBUCKET_ALLOWED_PROJECTS),
+    allowedRepos: parseScopeList(parsed.BITBUCKET_ALLOWED_REPOS),
     cache: {
       enabled: parsed.BITBUCKET_CACHE_ENABLED,
       ttlRepos: parsed.BITBUCKET_CACHE_TTL_REPOS as Seconds,
@@ -88,6 +105,8 @@ export function configSummary(config: Config): Record<string, unknown> {
     defaultProject: config.defaultProject,
     hasToken: Boolean(config.bitbucketToken),
     allowedActions: [...config.allowedActions],
+    allowedProjects: config.allowedProjects.size > 0 ? [...config.allowedProjects] : 'all',
+    allowedRepos: config.allowedRepos.size > 0 ? [...config.allowedRepos] : 'all',
     cache: config.cache,
     api: config.api,
     logLevel: config.logLevel,

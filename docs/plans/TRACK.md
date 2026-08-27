@@ -1,6 +1,6 @@
 # TRACK — Atlassian Bitbucket MCP
 
-Last updated: 2026-04-25
+Last updated: 2026-07-20
 
 ## Status legend
 
@@ -40,6 +40,15 @@ Last updated: 2026-04-25
 [ ] feat-ci → docs/plans/phase-5/feat-ci/plan.md
 [ ] feat-npx-release → docs/plans/phase-5/feat-npx-release/plan.md
 
+### Phase 6 — Deployment scoping (juspay Server/DC)
+
+[x] feat-project-repo-scoping → docs/plans/phase-6/feat-project-repo-scoping/plan.md
+— `BITBUCKET_ALLOWED_PROJECTS` / `BITBUCKET_ALLOWED_REPOS` allow-lists +
+`requireScope` enforcement on every project/repo-scoped tool
+[ ] feat-inline-comment-hardening — `diffType` on `bitbucket_add_pr_inline_comment`
+[ ] feat-http-transport — Streamable HTTP transport
+[ ] feat-pr-tasks → docs/plans/phase-6/feat-pr-tasks/plan.md — create/list/resolve/delete PR tasks
+
 ## Done (across branches)
 
 - Initial repo scaffold (package.json, tsconfig.json, eslint, prettier, husky, docs/)
@@ -74,6 +83,18 @@ The following items have landed on `main` since:
   is staged
 - types/bitbucket.ts curated to re-export from generated declarations,
   preserving the existing `Bitbucket*` public names
+- `src/permissions.ts` gains `requireScope`/`ScopeDeniedError`; every
+  project/repo-scoped tool in `pr-tools.ts`, `repo-tools.ts`, `search-tools.ts`
+  calls it after `requirePermission`; `test/permissions.test.mjs` +
+  `test/config.test.mjs` added, run via `node --test test/*.test.mjs`
+  (`pretest` builds `dist/` first)
+
+## Decisions / deviations
+
+- Test runner: used Node's built-in `node:test` + `node:assert` (zero new deps,
+  ESM-native) instead of the Jest setup named in the phase-5 plan. The security
+  policy (`security-check before add`) and offline install constraints made a
+  dependency-free runner the pragmatic choice.
 
 ## Blockers / decisions pending
 

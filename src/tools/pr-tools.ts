@@ -5,7 +5,7 @@
 import { z } from 'zod';
 
 import { log } from '../logger.js';
-import { requirePermission } from '../permissions.js';
+import { requirePermission, requireScope } from '../permissions.js';
 import {
   addPrCommentShape,
   addPrInlineCommentShape,
@@ -49,6 +49,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(listPullRequestsShape).parse(args);
         requirePermission(config, 'read_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_list_pull_requests',
@@ -80,6 +81,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(prRefShape).parse(args);
         requirePermission(config, 'read_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_get_pull_request',
@@ -105,6 +107,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(prRefShape).parse(args);
         requirePermission(config, 'read_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', { operation: 'tool_execute', toolName: 'bitbucket_get_pr_diff' });
         const result = await prApi.getDiff(input.project, input.repo, input.prId);
         log('info', 'tool end', {
@@ -127,6 +130,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(prPaginatedShape).parse(args);
         requirePermission(config, 'read_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_get_pr_commits',
@@ -161,6 +165,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(prPaginatedShape).parse(args);
         requirePermission(config, 'read_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_get_pr_activities',
@@ -195,6 +200,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(addPrCommentShape).parse(args);
         requirePermission(config, 'write_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_add_pr_comment',
@@ -221,6 +227,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(addPrInlineCommentShape).parse(args);
         requirePermission(config, 'write_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_add_pr_inline_comment',
@@ -261,6 +268,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(replyToCommentShape).parse(args);
         requirePermission(config, 'write_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_reply_to_comment',
@@ -293,6 +301,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(resolveCommentShape).parse(args);
         requirePermission(config, 'manage_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_resolve_comment',
@@ -325,6 +334,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(updateCommentShape).parse(args);
         requirePermission(config, 'write_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', {
           operation: 'tool_execute',
           toolName: 'bitbucket_update_comment',
@@ -361,6 +371,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       try {
         const input = z.object(prRefShape).parse(args);
         requirePermission(config, 'manage_pr');
+        requireScope(config, input.project, input.repo);
         log('info', 'tool start', { operation: 'tool_execute', toolName: 'bitbucket_approve_pr' });
         const result = await prApi.approve(input.project, input.repo, input.prId);
         invalidatePrCache(cache, config, input.project, input.repo, input.prId);

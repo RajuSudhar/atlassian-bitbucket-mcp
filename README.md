@@ -86,6 +86,10 @@ All configuration is done through environment variables. See [`.env.example`](./
 #### Optional
 
 - `BITBUCKET_ALLOWED_ACTIONS` - Comma-separated list of allowed tool actions
+- `BITBUCKET_ALLOWED_PROJECTS` - Comma-separated allow-list of project keys the
+  server may touch (empty = all). Case-insensitive.
+- `BITBUCKET_ALLOWED_REPOS` - Comma-separated allow-list of repositories (empty =
+  all). Each entry is `PROJECT/REPO` or a bare `REPO` slug. Case-insensitive.
 - `BITBUCKET_CACHE_ENABLED` - Enable/disable caching (default: true)
 - `BITBUCKET_CACHE_TTL_REPOS` - Repository cache TTL in seconds (default: 3600)
 - See [`.env.example`](./.env.example) for all options

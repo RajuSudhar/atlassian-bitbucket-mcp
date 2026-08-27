@@ -20,6 +20,17 @@ export type Config = {
   readonly bitbucketToken: string;
   readonly defaultProject: string;
   readonly allowedActions: ReadonlySet<Action>;
+  /**
+   * Allowed project keys (normalized lowercase). Empty set → all projects
+   * allowed. Enforced by `requireScope` before any project-scoped call.
+   */
+  readonly allowedProjects: ReadonlySet<string>;
+  /**
+   * Allowed repositories (normalized lowercase). Entries are either
+   * `project/repo` (fully qualified) or a bare `repo` slug matching under any
+   * allowed project. Empty set → all repos allowed.
+   */
+  readonly allowedRepos: ReadonlySet<string>;
   readonly cache: CacheConfig;
   readonly api: ApiConfig;
   readonly logLevel: LogLevel;
