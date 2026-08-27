@@ -37,14 +37,23 @@ export type Config = {
   readonly logLevel: LogLevel;
 };
 
-export type TransportMode = 'stdio' | 'http';
+export type TransportMode = 'stdio' | 'http' | 'https';
+
+export type TlsConfig = {
+  /** Path to a PEM-encoded certificate file (e.g. generated with mkcert). */
+  readonly certFile: string;
+  /** Path to the matching PEM-encoded private key file. */
+  readonly keyFile: string;
+};
 
 export type TransportConfig = {
   readonly mode: TransportMode;
-  /** Port for the HTTP transport (ignored in stdio mode). */
+  /** Port for the HTTP/HTTPS transport (ignored in stdio mode). */
   readonly httpPort: number;
-  /** Bind address for the HTTP transport; defaults to loopback only. */
+  /** Bind address for the HTTP/HTTPS transport; defaults to loopback only. */
   readonly httpHost: string;
+  /** TLS material paths; present only when mode is 'https'. */
+  readonly tls?: TlsConfig;
 };
 
 export type CacheConfig = {

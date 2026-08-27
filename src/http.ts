@@ -7,12 +7,20 @@
  * mints a session id (returned in the `mcp-session-id` header) that the client
  * echoes on subsequent POST/GET/DELETE requests.
  *
+ * HTTPS mode (`MCP_TRANSPORT=https`) serves the same endpoint over TLS using a
+ * locally-generated certificate (e.g. mkcert), for local clients that require
+ * TLS to connect. TLS does not add authentication: the endpoint is still
+ * unauthenticated, so binding must stay on loopback unless the user knows
+ * exactly what they are doing.
+ *
  * Bound to loopback by default. The endpoint is unauthenticated, so it must
  * never be exposed beyond 127.0.0.1 — the Bitbucket token lives behind it.
  */
 
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { createServer as createHttpServer } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
 
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
@@ -22,8 +30,9 @@ import { createServer } from './server.js';
 
 import type { BitbucketClient } from './bitbucket/client.js';
 import type { Cache } from './cache.js';
-import type { Config } from '@types';
+import type { Config, TlsConfig } from '@types';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
+import type { Server as HttpsServer } from 'node:https';
 
 const MCP_PATH = '/mcp';
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
@@ -31,6 +40,18 @@ const MAX_BODY_BYTES = 4 * 1024 * 1024;
 export type HttpTransportHandle = {
   readonly close: () => Promise<void>;
 };
+
+/** Read TLS material at startup — fail fast with a clear error if unreadable. */
+function loadTlsMaterial(tls: TlsConfig): { readonly cert: Buffer; readonly key: Buffer } {
+  try {
+    return { cert: readFileSync(tls.certFile), key: readFileSync(tls.keyFile) };
+  } catch (err) {
+    throw new Error(
+      `Failed to read TLS cert/key (MCP_HTTP_TLS_CERT_FILE=${tls.certFile}, ` +
+        `MCP_HTTP_TLS_KEY_FILE=${tls.keyFile}): ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+}
 
 function readJsonBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -80,10 +101,10 @@ export async function startHttpTransport(
   client: BitbucketClient,
   cache: Cache
 ): Promise<HttpTransportHandle> {
-  const { httpHost, httpPort } = config.transport;
+  const { httpHost, httpPort, mode, tls } = config.transport;
   const transports = new Map<string, StreamableHTTPServerTransport>();
 
-  const httpServer: Server = createHttpServer((req, res) => {
+  const requestListener = (req: IncomingMessage, res: ServerResponse): void => {
     void handle(req, res).catch((err: unknown) => {
       log('error', 'http handler error', {
         operation: 'http_request',
@@ -93,14 +114,19 @@ export async function startHttpTransport(
         jsonRpcError(res, 500, 'Internal server error');
       }
     });
-  });
+  };
+
+  const httpServer: Server | HttpsServer =
+    mode === 'https' && tls
+      ? createHttpsServer(loadTlsMaterial(tls), requestListener)
+      : createHttpServer(requestListener);
 
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
 
     // Lightweight health probe for service supervisors / smoke tests.
     if (req.method === 'GET' && url.pathname === '/health') {
-      sendJson(res, 200, { status: 'ok', transport: 'http', sessions: transports.size });
+      sendJson(res, 200, { status: 'ok', transport: mode, sessions: transports.size });
       return;
     }
 
@@ -167,7 +193,7 @@ export async function startHttpTransport(
 
   log('info', 'http transport listening', {
     operation: 'server_init',
-    transport: 'http',
+    transport: mode,
     host: httpHost,
     port: httpPort,
     endpoint: MCP_PATH,

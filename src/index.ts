@@ -35,11 +35,11 @@ async function bootstrap(): Promise<void> {
   const client = new BitbucketClient(config);
   const cache = new Cache(config.cache);
 
-  // In http mode, transports (and their per-session server instances) are
-  // created lazily by the HTTP layer; in stdio mode we connect a single one.
+  // In http/https mode, transports (and their per-session server instances)
+  // are created lazily by the HTTP layer; in stdio mode we connect a single one.
   let closeTransport: () => Promise<void>;
 
-  if (config.transport.mode === 'http') {
+  if (config.transport.mode !== 'stdio') {
     const handle = await startHttpTransport(config, client, cache);
     closeTransport = handle.close;
   } else {

@@ -80,4 +80,36 @@ describe('Unit: loadConfig', () => {
     assert.ok(config.allowedRepos.has('bz/nimble'));
     assert.ok(config.allowedRepos.has('shared-lib'));
   });
+
+  it('should fail https mode without TLS cert/key files', () => {
+    process.env.MCP_TRANSPORT = 'https';
+    assert.throws(() => loadConfig(), /MCP_HTTP_TLS_CERT_FILE and MCP_HTTP_TLS_KEY_FILE/);
+  });
+
+  it('should fail https mode when only one TLS file is set', () => {
+    process.env.MCP_TRANSPORT = 'https';
+    process.env.MCP_HTTP_TLS_CERT_FILE = '/tmp/localhost.pem';
+    assert.throws(() => loadConfig(), /MCP_HTTP_TLS_CERT_FILE and MCP_HTTP_TLS_KEY_FILE/);
+  });
+
+  it('should populate transport.tls in https mode with cert and key set', () => {
+    process.env.MCP_TRANSPORT = 'https';
+    process.env.MCP_HTTP_TLS_CERT_FILE = '/tmp/localhost.pem';
+    process.env.MCP_HTTP_TLS_KEY_FILE = '/tmp/localhost-key.pem';
+    const config = loadConfig();
+    assert.equal(config.transport.mode, 'https');
+    assert.deepEqual(config.transport.tls, {
+      certFile: '/tmp/localhost.pem',
+      keyFile: '/tmp/localhost-key.pem',
+    });
+  });
+
+  it('should leave transport.tls unset in http mode even when TLS files are set', () => {
+    process.env.MCP_TRANSPORT = 'http';
+    process.env.MCP_HTTP_TLS_CERT_FILE = '/tmp/localhost.pem';
+    process.env.MCP_HTTP_TLS_KEY_FILE = '/tmp/localhost-key.pem';
+    const config = loadConfig();
+    assert.equal(config.transport.mode, 'http');
+    assert.equal(config.transport.tls, undefined);
+  });
 });

@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 
-import type { Action, Config, Seconds } from '@types';
+import type { Action, Config, Seconds, TlsConfig } from '@types';
 
 const VALID_ACTIONS: ReadonlyArray<Action> = [
   'read_pr',
@@ -36,9 +36,11 @@ const envSchema = z.object({
   BITBUCKET_REQUEST_TIMEOUT: z.coerce.number().int().positive().optional().default(30000),
   BITBUCKET_MAX_RETRIES: z.coerce.number().int().nonnegative().optional().default(3),
   BITBUCKET_RATE_LIMIT_DELAY: z.coerce.number().int().nonnegative().optional().default(0),
-  MCP_TRANSPORT: z.enum(['stdio', 'http']).optional().default('stdio'),
+  MCP_TRANSPORT: z.enum(['stdio', 'http', 'https']).optional().default('stdio'),
   MCP_HTTP_PORT: z.coerce.number().int().positive().max(65535).optional().default(3900),
   MCP_HTTP_HOST: z.string().min(1).optional().default('127.0.0.1'),
+  MCP_HTTP_TLS_CERT_FILE: z.string().min(1).optional(),
+  MCP_HTTP_TLS_KEY_FILE: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional().default('info'),
 });
 
@@ -77,6 +79,18 @@ function parseScopeList(raw: string): ReadonlySet<string> {
 export function loadConfig(): Config {
   const parsed = envSchema.parse(process.env);
 
+  let tls: TlsConfig | undefined;
+  if (parsed.MCP_TRANSPORT === 'https') {
+    const certFile = parsed.MCP_HTTP_TLS_CERT_FILE;
+    const keyFile = parsed.MCP_HTTP_TLS_KEY_FILE;
+    if (!certFile || !keyFile) {
+      throw new Error(
+        'MCP_TRANSPORT=https requires both MCP_HTTP_TLS_CERT_FILE and MCP_HTTP_TLS_KEY_FILE (paths to PEM files)'
+      );
+    }
+    tls = { certFile, keyFile };
+  }
+
   const config: Config = {
     bitbucketUrl: parsed.BITBUCKET_URL.replace(/\/+$/, ''),
     bitbucketToken: parsed.BITBUCKET_TOKEN,
@@ -99,6 +113,7 @@ export function loadConfig(): Config {
       mode: parsed.MCP_TRANSPORT,
       httpPort: parsed.MCP_HTTP_PORT,
       httpHost: parsed.MCP_HTTP_HOST,
+      ...(tls ? { tls } : {}),
     },
     logLevel: parsed.LOG_LEVEL,
   };
