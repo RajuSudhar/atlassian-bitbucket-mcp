@@ -7,8 +7,14 @@
     "atlassian-bitbucket-mcp": "dist/src/index.js"
   },
   "files": [
-    "dist/"
+    "dist/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
@@ -19,7 +25,7 @@
     "clean": "rm -rf dist",
     "rebuild": "pnpm run clean && pnpm run build",
     "prepare": "husky",
-    "postinstall": "npm run build",
+    "prepublishOnly": "pnpm run validate && pnpm run build",
     "dev:setup": "pnpm install && pnpm run build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
