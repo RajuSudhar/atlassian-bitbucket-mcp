@@ -45,6 +45,10 @@ export const addPrInlineCommentShape = {
   line: z.coerce.number().int().positive().describe('Line number'),
   lineType: z.enum(['ADDED', 'REMOVED', 'CONTEXT']).describe('Line type'),
   fileType: z.enum(['FROM', 'TO']).optional().describe('File type'),
+  diffType: z
+    .enum(['EFFECTIVE', 'COMMIT', 'RANGE'])
+    .optional()
+    .describe('Server/DC diff type the anchor resolves against; defaults to EFFECTIVE'),
 } as const;
 
 export const replyToCommentShape = {

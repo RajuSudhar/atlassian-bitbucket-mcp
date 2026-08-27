@@ -88,11 +88,21 @@ export class PullRequestApi {
     repo: string,
     prId: number,
     text: string,
-    anchor: { path: string; line: number; lineType: string; fileType?: string }
+    anchor: {
+      path: string;
+      line: number;
+      lineType: string;
+      fileType?: string;
+      diffType?: string;
+    }
   ): Promise<BitbucketComment> {
+    // `diffType: EFFECTIVE` anchors the comment against the PR's overall diff
+    // (the default view). Server/DC drops inline comments whose anchor omits it
+    // when the PR spans multiple commits, so default it here.
+    const resolvedAnchor = { ...anchor, diffType: anchor.diffType ?? 'EFFECTIVE' };
     return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments`,
-      { method: 'POST', body: { text, anchor } }
+      { method: 'POST', body: { text, anchor: resolvedAnchor } }
     );
   }
 

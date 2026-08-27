@@ -242,6 +242,7 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
             line: input.line,
             lineType: input.lineType,
             fileType: input.fileType,
+            diffType: input.diffType,
           }
         );
         invalidatePrCache(cache, config, input.project, input.repo, input.prId);
