@@ -24,6 +24,17 @@ export default tseslint.config(
         },
       ],
 
+      // TypeScript unused vars rule
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+        },
+      ],
+
       // Import ordering and organization
       'import/order': [
         'error',
