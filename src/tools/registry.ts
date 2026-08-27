@@ -22,6 +22,7 @@ import {
   searchCodeShape,
   searchCommitsShape,
   updateCommentShape,
+  updatePullRequestShape,
 } from './schemas.js';
 
 import type { createPrTools } from './pr-tools.js';
@@ -113,6 +114,13 @@ export function buildToolRegistry(h: ToolHandlers): ReadonlyArray<ToolDefinition
       description: 'Edit a comment on a pull request',
       shape: updateCommentShape,
       handler: h.pr.bitbucket_update_comment,
+    },
+    {
+      name: 'bitbucket_update_pull_request',
+      description:
+        'Update PR title and/or description (Server/DC, auto-preserves reviewers, version optional)',
+      shape: updatePullRequestShape,
+      handler: h.pr.bitbucket_update_pull_request,
     },
     {
       name: 'bitbucket_approve_pr',

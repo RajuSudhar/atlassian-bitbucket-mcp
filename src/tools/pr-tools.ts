@@ -15,6 +15,7 @@ import {
   replyToCommentShape,
   resolveCommentShape,
   updateCommentShape,
+  updatePullRequestShape,
 } from './schemas.js';
 
 import type { PullRequestApi } from '../bitbucket/api/pull-requests.js';
@@ -367,6 +368,44 @@ export function createPrTools(prApi: PullRequestApi, config: Config, cache: Cach
       }
     },
 
+    bitbucket_update_pull_request: async (args: unknown): Promise<McpToolResult> => {
+      const start = Date.now();
+      try {
+        const input = z
+          .object(updatePullRequestShape)
+          .refine((data) => data.title !== undefined || data.description !== undefined, {
+            message: 'At least one of title or description must be provided',
+          })
+          .parse(args);
+        requirePermission(config, 'write_pr');
+        requireScope(config, input.project, input.repo);
+        log('info', 'tool start', {
+          operation: 'tool_execute',
+          toolName: 'bitbucket_update_pull_request',
+        });
+        const result = await prApi.updatePullRequest(input.project, input.repo, input.prId, {
+          title: input.title,
+          description: input.description,
+          version: input.version,
+        });
+        invalidatePrCache(cache, config, input.project, input.repo, input.prId);
+        log('info', 'tool end', {
+          toolName: 'bitbucket_update_pull_request',
+          durationMs: Date.now() - start,
+        });
+        return textResult(result);
+      } catch (err) {
+        log('error', 'tool error', {
+          toolName: 'bitbucket_update_pull_request',
+          error: String(err),
+          durationMs: Date.now() - start,
+        });
+        return errorResult(
+          'UPDATE_PULL_REQUEST_FAILED',
+          err instanceof Error ? err.message : String(err)
+        );
+      }
+    },
     bitbucket_approve_pr: async (args: unknown): Promise<McpToolResult> => {
       const start = Date.now();
       try {

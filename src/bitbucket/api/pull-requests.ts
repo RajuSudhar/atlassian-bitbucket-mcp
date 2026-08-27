@@ -7,6 +7,9 @@
  * follow-up; until then, Cloud instances will error at the API layer.
  */
 
+import { log } from '../../logger.js';
+import { BitbucketApiError } from '../errors.js';
+
 import type { BitbucketClient } from '../client.js';
 import type {
   BitbucketActivity,
@@ -144,6 +147,62 @@ export class PullRequestApi {
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments/${commentId}`,
       { method: 'PUT', body: { text, version } }
     );
+  }
+
+  async updatePullRequest(
+    project: string,
+    repo: string,
+    prId: number,
+    updates: { title?: string; description?: string; version?: number }
+  ): Promise<PullRequest> {
+    const currentPr = await this.get(project, repo, prId);
+
+    // Helper to build the PUT body from a PR snapshot, applying caller overrides
+    // for title and description while using echoed fields from the snapshot.
+    // The version is passed explicitly to allow first attempt to use updates.version,
+    // and retry to use the fresh snapshot's version.
+    const buildUpdateBody = (pr: PullRequest, version: number): Record<string, unknown> => {
+      const body: Record<string, unknown> = {
+        id: pr.id,
+        version,
+        title: updates.title ?? pr.title,
+        toRef: pr.toRef,
+        reviewers: pr.reviewers ?? [],
+      };
+
+      // Only include description if it resolves to a defined value
+      const resolvedDescription = updates.description ?? pr.description;
+      if (resolvedDescription !== undefined) {
+        body.description = resolvedDescription;
+      }
+
+      return body;
+    };
+
+    try {
+      const body = buildUpdateBody(currentPr, updates.version ?? currentPr.version);
+      return await this.client.requestJson<PullRequest>(
+        `/projects/${project}/repos/${repo}/pull-requests/${prId}`,
+        { method: 'PUT', body }
+      );
+    } catch (err) {
+      if (err instanceof BitbucketApiError && err.statusCode === 409) {
+        log('warn', 'pr update conflict, retrying', {
+          operation: 'updatePullRequest',
+          project,
+          repo,
+          prId,
+          reviewersPreservedCount: (currentPr.reviewers ?? []).length,
+        });
+        const freshPr = await this.get(project, repo, prId);
+        const body = buildUpdateBody(freshPr, freshPr.version);
+        return await this.client.requestJson<PullRequest>(
+          `/projects/${project}/repos/${repo}/pull-requests/${prId}`,
+          { method: 'PUT', body }
+        );
+      }
+      throw err;
+    }
   }
 
   async approve(project: string, repo: string, prId: number): Promise<BitbucketComment> {

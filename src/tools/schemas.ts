@@ -70,6 +70,18 @@ export const updateCommentShape = {
   version: z.coerce.number().int().nonnegative().describe('Comment version for optimistic locking'),
 } as const;
 
+export const updatePullRequestShape = {
+  ...prRefShape,
+  title: z.string().min(1).optional().describe('New PR title'),
+  description: z.string().optional().describe('New PR description (reviewers are preserved)'),
+  version: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe('PR version for optimistic locking (auto-fetched if omitted)'),
+} as const;
+
 // --- Repo Tools ----------------------------------------------------------
 
 export const listProjectsShape = { limit, start } as const;
