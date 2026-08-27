@@ -21,6 +21,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { BitbucketClient } from './bitbucket/client.js';
 import { Cache } from './cache.js';
 import { loadConfig, configSummary } from './config.js';
+import { startHttpTransport } from './http.js';
 import { log, setLogLevel } from './logger.js';
 import { createServer } from './server.js';
 
@@ -33,17 +34,27 @@ async function bootstrap(): Promise<void> {
 
   const client = new BitbucketClient(config);
   const cache = new Cache(config.cache);
-  const server = createServer(config, client, cache);
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  // In http mode, transports (and their per-session server instances) are
+  // created lazily by the HTTP layer; in stdio mode we connect a single one.
+  let closeTransport: () => Promise<void>;
 
-  log('info', 'server ready', { operation: 'server_init', transport: 'stdio' });
+  if (config.transport.mode === 'http') {
+    const handle = await startHttpTransport(config, client, cache);
+    closeTransport = handle.close;
+  } else {
+    const server = createServer(config, client, cache);
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    closeTransport = () => server.close();
+  }
+
+  log('info', 'server ready', { operation: 'server_init', transport: config.transport.mode });
 
   const shutdown = async () => {
     log('info', 'server shutting down', { operation: 'server_shutdown' });
     cache.clear();
-    await server.close();
+    await closeTransport();
     log('info', 'server stopped', { operation: 'server_shutdown' });
     process.exit(0);
   };

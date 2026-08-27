@@ -36,6 +36,9 @@ const envSchema = z.object({
   BITBUCKET_REQUEST_TIMEOUT: z.coerce.number().int().positive().optional().default(30000),
   BITBUCKET_MAX_RETRIES: z.coerce.number().int().nonnegative().optional().default(3),
   BITBUCKET_RATE_LIMIT_DELAY: z.coerce.number().int().nonnegative().optional().default(0),
+  MCP_TRANSPORT: z.enum(['stdio', 'http']).optional().default('stdio'),
+  MCP_HTTP_PORT: z.coerce.number().int().positive().max(65535).optional().default(3900),
+  MCP_HTTP_HOST: z.string().min(1).optional().default('127.0.0.1'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional().default('info'),
 });
 
@@ -92,6 +95,11 @@ export function loadConfig(): Config {
       maxRetries: parsed.BITBUCKET_MAX_RETRIES,
       rateLimitDelay: parsed.BITBUCKET_RATE_LIMIT_DELAY,
     },
+    transport: {
+      mode: parsed.MCP_TRANSPORT,
+      httpPort: parsed.MCP_HTTP_PORT,
+      httpHost: parsed.MCP_HTTP_HOST,
+    },
     logLevel: parsed.LOG_LEVEL,
   };
 
@@ -109,6 +117,7 @@ export function configSummary(config: Config): Record<string, unknown> {
     allowedRepos: config.allowedRepos.size > 0 ? [...config.allowedRepos] : 'all',
     cache: config.cache,
     api: config.api,
+    transport: config.transport,
     logLevel: config.logLevel,
   };
 }

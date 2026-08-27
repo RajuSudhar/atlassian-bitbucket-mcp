@@ -33,7 +33,18 @@ export type Config = {
   readonly allowedRepos: ReadonlySet<string>;
   readonly cache: CacheConfig;
   readonly api: ApiConfig;
+  readonly transport: TransportConfig;
   readonly logLevel: LogLevel;
+};
+
+export type TransportMode = 'stdio' | 'http';
+
+export type TransportConfig = {
+  readonly mode: TransportMode;
+  /** Port for the HTTP transport (ignored in stdio mode). */
+  readonly httpPort: number;
+  /** Bind address for the HTTP transport; defaults to loopback only. */
+  readonly httpHost: string;
 };
 
 export type CacheConfig = {
