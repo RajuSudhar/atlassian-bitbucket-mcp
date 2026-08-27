@@ -9,18 +9,22 @@
 import {
   addPrCommentShape,
   addPrInlineCommentShape,
+  discardPrReviewShape,
   getFileContentShape,
+  getPrReviewShape,
   listProjectsShape,
   listPullRequestsShape,
   prPaginatedShape,
   prRefShape,
   projectListShape,
+  publishPrReviewShape,
   replyToCommentShape,
   repoPaginatedShape,
   repoRefShape,
   resolveCommentShape,
   searchCodeShape,
   searchCommitsShape,
+  startPrReviewShape,
   updateCommentShape,
   updatePullRequestShape,
 } from './schemas.js';
@@ -87,19 +91,22 @@ export function buildToolRegistry(h: ToolHandlers): ReadonlyArray<ToolDefinition
     },
     {
       name: 'bitbucket_add_pr_comment',
-      description: 'Add a general comment to a pull request',
+      description:
+        'Add a general comment to a pull request; set pending: true to queue it in the current review session instead of posting it immediately',
       shape: addPrCommentShape,
       handler: h.pr.bitbucket_add_pr_comment,
     },
     {
       name: 'bitbucket_add_pr_inline_comment',
-      description: 'Add inline code comment on a pull request',
+      description:
+        "Add a per-file, per-line inline code comment on any author's pull request; set pending: true to queue it in the current review session",
       shape: addPrInlineCommentShape,
       handler: h.pr.bitbucket_add_pr_inline_comment,
     },
     {
       name: 'bitbucket_reply_to_comment',
-      description: 'Reply to a comment on a pull request',
+      description:
+        'Reply to a comment on a pull request; set pending: true to queue the reply in the current review session',
       shape: replyToCommentShape,
       handler: h.pr.bitbucket_reply_to_comment,
     },
@@ -127,6 +134,35 @@ export function buildToolRegistry(h: ToolHandlers): ReadonlyArray<ToolDefinition
       description: 'Approve a pull request',
       shape: prRefShape,
       handler: h.pr.bitbucket_approve_pr,
+    },
+    // --- PR review sessions (batched review, Server/DC 7.7+) ---
+    {
+      name: 'bitbucket_start_pr_review',
+      description:
+        'Begin a batched review of a pull request: reports any comments already pending in your review session and how to add more. Bitbucket opens the session on the first pending comment, so no state is created here',
+      shape: startPrReviewShape,
+      handler: h.pr.bitbucket_start_pr_review,
+    },
+    {
+      name: 'bitbucket_get_pr_review',
+      description:
+        'List the pending, unpublished comments in your current review session for a pull request (visible only to you until published)',
+      shape: getPrReviewShape,
+      handler: h.pr.bitbucket_get_pr_review,
+    },
+    {
+      name: 'bitbucket_publish_pr_review',
+      description:
+        'Publish every pending comment in your review session in one batch, optionally with an overview comment and a reviewer verdict (UNAPPROVED, NEEDS_WORK, APPROVED)',
+      shape: publishPrReviewShape,
+      handler: h.pr.bitbucket_publish_pr_review,
+    },
+    {
+      name: 'bitbucket_discard_pr_review',
+      description:
+        'Discard your review session: deletes every pending comment on the pull request without notifying the author',
+      shape: discardPrReviewShape,
+      handler: h.pr.bitbucket_discard_pr_review,
     },
 
     // --- Repository tools ---

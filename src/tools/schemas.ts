@@ -33,9 +33,24 @@ export const prRefShape = { project, repo, prId } as const;
 
 export const prPaginatedShape = { ...prRefShape, limit, start } as const;
 
+/**
+ * Holds the comment in the caller's unpublished review instead of posting it
+ * immediately (Server/DC 7.7+). Not coerced: only a real JSON boolean should
+ * flip a comment from "published now" to "published later".
+ */
+const pending = z
+  .boolean()
+  .optional()
+  .default(false)
+  .describe(
+    'Add to the current review session as a pending comment, visible only to you until ' +
+      'bitbucket_publish_pr_review is called (Server/DC 7.7+). Default false posts immediately'
+  );
+
 export const addPrCommentShape = {
   ...prRefShape,
   text: z.string().min(1).describe('Comment text'),
+  pending,
 } as const;
 
 export const addPrInlineCommentShape = {
@@ -49,12 +64,14 @@ export const addPrInlineCommentShape = {
     .enum(['EFFECTIVE', 'COMMIT', 'RANGE'])
     .optional()
     .describe('Server/DC diff type the anchor resolves against; defaults to EFFECTIVE'),
+  pending,
 } as const;
 
 export const replyToCommentShape = {
   ...prRefShape,
   commentId: z.coerce.number().int().positive().describe('Parent comment ID'),
   text: z.string().min(1).describe('Reply text'),
+  pending,
 } as const;
 
 export const resolveCommentShape = {
@@ -81,6 +98,27 @@ export const updatePullRequestShape = {
     .optional()
     .describe('PR version for optimistic locking (auto-fetched if omitted)'),
 } as const;
+
+// --- PR review sessions (batched review) ---------------------------------
+
+export const startPrReviewShape = { ...prRefShape } as const;
+
+export const getPrReviewShape = { ...prPaginatedShape } as const;
+
+export const publishPrReviewShape = {
+  ...prRefShape,
+  commentText: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('Optional overview comment posted alongside the published review'),
+  participantStatus: z
+    .enum(['UNAPPROVED', 'NEEDS_WORK', 'APPROVED'])
+    .optional()
+    .describe('Optional reviewer verdict to set while publishing; omit to leave it unchanged'),
+} as const;
+
+export const discardPrReviewShape = { ...prRefShape } as const;
 
 // --- Repo Tools ----------------------------------------------------------
 

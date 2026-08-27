@@ -17,8 +17,17 @@ import type {
   BitbucketCommit,
   BitbucketDiff,
   BitbucketPagedResponse,
+  BitbucketParticipantStatus,
+  BitbucketPublishReviewResult,
   PullRequest,
 } from '@types';
+
+/**
+ * Comment state that puts a comment into the caller's unpublished review
+ * ("Start review" in the UI). Server/DC 7.7+. Omitting it publishes the
+ * comment immediately, which is the historical behaviour of every tool here.
+ */
+const PENDING_STATE = 'PENDING' as const;
 
 export class PullRequestApi {
   constructor(private readonly client: BitbucketClient) {}
@@ -74,18 +83,21 @@ export class PullRequestApi {
     );
   }
 
+  /** `pending: true` holds the comment in the caller's unpublished review. */
   async addComment(
     project: string,
     repo: string,
     prId: number,
-    text: string
+    text: string,
+    pending = false
   ): Promise<BitbucketComment> {
     return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments`,
-      { method: 'POST', body: { text } }
+      { method: 'POST', body: { text, ...(pending ? { state: PENDING_STATE } : {}) } }
     );
   }
 
+  /** `pending: true` holds the comment in the caller's unpublished review. */
   async addInlineComment(
     project: string,
     repo: string,
@@ -97,7 +109,8 @@ export class PullRequestApi {
       lineType: string;
       fileType?: string;
       diffType?: string;
-    }
+    },
+    pending = false
   ): Promise<BitbucketComment> {
     // `diffType: EFFECTIVE` anchors the comment against the PR's overall diff
     // (the default view). Server/DC drops inline comments whose anchor omits it
@@ -105,20 +118,36 @@ export class PullRequestApi {
     const resolvedAnchor = { ...anchor, diffType: anchor.diffType ?? 'EFFECTIVE' };
     return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments`,
-      { method: 'POST', body: { text, anchor: resolvedAnchor } }
+      {
+        method: 'POST',
+        body: {
+          text,
+          anchor: resolvedAnchor,
+          ...(pending ? { state: PENDING_STATE } : {}),
+        },
+      }
     );
   }
 
+  /** `pending: true` holds the reply in the caller's unpublished review. */
   async replyToComment(
     project: string,
     repo: string,
     prId: number,
     commentId: number,
-    text: string
+    text: string,
+    pending = false
   ): Promise<BitbucketComment> {
     return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/comments`,
-      { method: 'POST', body: { text, parent: { id: commentId } } }
+      {
+        method: 'POST',
+        body: {
+          text,
+          parent: { id: commentId },
+          ...(pending ? { state: PENDING_STATE } : {}),
+        },
+      }
     );
   }
 
@@ -209,6 +238,85 @@ export class PullRequestApi {
     return this.client.requestJson<BitbucketComment>(
       `/projects/${project}/repos/${repo}/pull-requests/${prId}/approve`,
       { method: 'POST' }
+    );
+  }
+
+  // --- Review sessions (batched review) — Server/DC 7.7+ -------------------
+  //
+  // There is no "start review" endpoint. Bitbucket opens the session the first
+  // time the caller creates a comment with `state: PENDING`, and closes it on
+  // publish (PUT) or discard (DELETE). The session lives on the server, keyed
+  // by (pull request, authenticated user), so it survives MCP restarts and is
+  // shared with the Bitbucket web UI.
+
+  /** Comment threads holding the caller's unpublished (PENDING) comments. */
+  async getReview(
+    project: string,
+    repo: string,
+    prId: number,
+    limit = 25,
+    start = 0
+  ): Promise<BitbucketPagedResponse<BitbucketComment>> {
+    return this.client.requestJson<BitbucketPagedResponse<BitbucketComment>>(
+      `/projects/${project}/repos/${repo}/pull-requests/${prId}/review`,
+      { queryParams: { limit, start } }
+    );
+  }
+
+  /**
+   * Publish every PENDING comment in the caller's review in one batch,
+   * optionally with an overview comment and a participant status.
+   *
+   * Atlassian's reference spells the participant status lower-cased
+   * (`"approved"`) in its example while every other Bitbucket API spells the
+   * enum upper-cased (`APPROVED`). Send the canonical upper-case form and fall
+   * back once to the documented lower-case form on 400 — the status this
+   * endpoint returns for an invalid participant status.
+   */
+  async publishReview(
+    project: string,
+    repo: string,
+    prId: number,
+    options: { commentText?: string; participantStatus?: BitbucketParticipantStatus } = {}
+  ): Promise<BitbucketPublishReviewResult> {
+    const endpoint = `/projects/${project}/repos/${repo}/pull-requests/${prId}/review`;
+
+    // The endpoint 400s on a missing body, so always send an object — an empty
+    // one publishes the pending comments without touching participant status.
+    const buildBody = (participantStatus?: string): Record<string, unknown> => ({
+      ...(options.commentText !== undefined ? { commentText: options.commentText } : {}),
+      ...(participantStatus !== undefined ? { participantStatus } : {}),
+    });
+
+    try {
+      return await this.client.requestJson<BitbucketPublishReviewResult>(endpoint, {
+        method: 'PUT',
+        body: buildBody(options.participantStatus),
+      });
+    } catch (err) {
+      const status = options.participantStatus;
+      if (err instanceof BitbucketApiError && err.statusCode === 400 && status !== undefined) {
+        log('warn', 'review publish rejected participant status, retrying lower-cased', {
+          operation: 'publishReview',
+          project,
+          repo,
+          prId,
+          participantStatus: status,
+        });
+        return await this.client.requestJson<BitbucketPublishReviewResult>(endpoint, {
+          method: 'PUT',
+          body: buildBody(status.toLowerCase()),
+        });
+      }
+      throw err;
+    }
+  }
+
+  /** Delete every PENDING comment in the caller's review; the author is not notified. */
+  async discardReview(project: string, repo: string, prId: number): Promise<void> {
+    await this.client.request<void>(
+      `/projects/${project}/repos/${repo}/pull-requests/${prId}/review`,
+      { method: 'DELETE' }
     );
   }
 }
