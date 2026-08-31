@@ -2,9 +2,21 @@
  * Configuration loader — the ONLY file that reads process.env.
  */
 
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
 import { z } from 'zod';
 
-import type { Action, Config, Seconds, TlsConfig } from '@types';
+import { getConfigDir } from './paths.js';
+
+import type {
+  Action,
+  Config,
+  LoadServerConfigDeps,
+  Seconds,
+  ServerConfig,
+  TlsConfig,
+} from '@types';
 
 const VALID_ACTIONS: ReadonlyArray<Action> = [
   'read_pr',
@@ -135,4 +147,112 @@ export function configSummary(config: Config): Record<string, unknown> {
     transport: config.transport,
     logLevel: config.logLevel,
   };
+}
+
+export const DEFAULT_MAX_OUTPUT_TOKENS = 25000;
+
+const toolSettingsSchema = z
+  .object({
+    maxOutputTokens: z.number().int().positive().optional(),
+  })
+  .strict();
+
+export const serverConfigSchema = z
+  .object({
+    $schema: z.string().optional(),
+    defaults: toolSettingsSchema.optional(),
+    tools: z.record(z.string(), toolSettingsSchema).optional(),
+  })
+  .strict();
+
+async function resolveConfigPath(
+  fileExists: (p: string) => Promise<boolean>
+): Promise<string | null> {
+  const explicit = process.env.BITBUCKET_MCP_CONFIG;
+  if (explicit) {
+    if (!path.isAbsolute(explicit)) {
+      throw new Error(`BITBUCKET_MCP_CONFIG must be an absolute path, got: ${explicit}`);
+    }
+    if (!(await fileExists(explicit))) {
+      throw new Error(`BITBUCKET_MCP_CONFIG points to a file that does not exist: ${explicit}`);
+    }
+    return explicit;
+  }
+
+  const cwdConfig = path.join(process.cwd(), 'bitbucket-mcp.config.json');
+  if (await fileExists(cwdConfig)) {
+    return cwdConfig;
+  }
+
+  const configDir = getConfigDir({
+    configDirOverride: process.env.BITBUCKET_MCP_CONFIG_DIR,
+    xdgConfigHome: process.env.XDG_CONFIG_HOME,
+  });
+  const xdgConfig = path.join(configDir, 'config.json');
+  if (await fileExists(xdgConfig)) {
+    return xdgConfig;
+  }
+
+  return null;
+}
+
+export async function loadServerConfig(deps?: LoadServerConfigDeps): Promise<ServerConfig> {
+  const readFile = deps?.readFile ?? ((filePath: string) => fs.readFile(filePath, 'utf8'));
+  const fileExists =
+    deps?.fileExists ??
+    (async (filePath: string) => {
+      try {
+        await fs.stat(filePath);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+
+  const configPath = await resolveConfigPath(fileExists);
+
+  type ValidatedConfig = z.infer<typeof serverConfigSchema>;
+  let validated: ValidatedConfig;
+
+  if (configPath) {
+    try {
+      const contents = await readFile(configPath);
+      const parsed = JSON.parse(contents);
+      validated = serverConfigSchema.parse(parsed);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        throw new Error(`Invalid JSON in config file ${configPath}: ${err.message}`);
+      }
+      throw err;
+    }
+  } else {
+    validated = {};
+  }
+
+  const envOverride = process.env.BITBUCKET_MCP_MAX_OUTPUT_TOKENS;
+  if (envOverride) {
+    try {
+      const parsedValue = z.coerce.number().int().positive().parse(envOverride);
+      validated.defaults = {
+        ...(validated.defaults || {}),
+        maxOutputTokens: parsedValue,
+      };
+    } catch {
+      throw new Error(
+        `BITBUCKET_MCP_MAX_OUTPUT_TOKENS must be a positive integer, got: ${envOverride}`
+      );
+    }
+  }
+
+  return {
+    defaults: validated.defaults ?? {},
+    tools: validated.tools ?? {},
+  };
+}
+
+export function resolveMaxOutputTokens(governor: ServerConfig, toolName?: string): number {
+  if (toolName && governor.tools[toolName]?.maxOutputTokens != null) {
+    return governor.tools[toolName].maxOutputTokens;
+  }
+  return governor.defaults.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
 }

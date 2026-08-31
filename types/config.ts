@@ -68,3 +68,22 @@ export type ApiConfig = {
   readonly maxRetries: number;
   readonly rateLimitDelay: number;
 };
+
+export type ToolSettings = {
+  readonly maxOutputTokens?: number;
+};
+
+export type ServerConfig = {
+  readonly defaults: ToolSettings;
+  readonly tools: Readonly<Record<string, ToolSettings>>;
+};
+
+export type ConfigDirOverrides = {
+  readonly configDirOverride?: string;
+  readonly xdgConfigHome?: string;
+};
+
+export type LoadServerConfigDeps = {
+  readonly readFile?: (filePath: string) => Promise<string>;
+  readonly fileExists?: (filePath: string) => Promise<boolean>;
+};
