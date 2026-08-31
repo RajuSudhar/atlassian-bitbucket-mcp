@@ -18,13 +18,13 @@ import { RepositoryApi } from './bitbucket/api/repositories.js';
 import { SearchApi } from './bitbucket/api/search.js';
 import { log } from './logger.js';
 import { createPrTools } from './tools/pr-tools.js';
-import { buildToolRegistry } from './tools/registry.js';
+import { buildToolRegistry, toolHandler } from './tools/registry.js';
 import { createRepoTools } from './tools/repo-tools.js';
 import { createSearchTools } from './tools/search-tools.js';
 
 import type { BitbucketClient } from './bitbucket/client.js';
 import type { Cache } from './cache.js';
-import type { Config, McpToolResult } from '@types';
+import type { Config, McpToolResult, ServerConfig } from '@types';
 
 /** Narrow SDK-compatible tool result (content must be text blocks). */
 type SdkToolResult = McpToolResult & { content: Array<{ type: 'text'; text: string }> };
@@ -36,7 +36,12 @@ function asSdkHandler(
   return async (args: unknown) => (await handler(args)) as SdkToolResult;
 }
 
-export function createServer(config: Config, client: BitbucketClient, cache: Cache): McpServer {
+export function createServer(
+  config: Config,
+  client: BitbucketClient,
+  cache: Cache,
+  governor: ServerConfig
+): McpServer {
   const server = new McpServer({
     name: 'atlassian-bitbucket-mcp',
     version: '0.1.0',
@@ -49,7 +54,8 @@ export function createServer(config: Config, client: BitbucketClient, cache: Cac
   });
 
   for (const tool of registry) {
-    server.tool(tool.name, tool.description, tool.shape, asSdkHandler(tool.handler));
+    const limited = toolHandler(tool.name, governor, tool.handler);
+    server.tool(tool.name, tool.description, tool.shape, asSdkHandler(limited));
   }
 
   log('info', 'mcp tools registered', {

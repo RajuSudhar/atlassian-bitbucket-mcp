@@ -20,7 +20,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
 import { BitbucketClient } from './bitbucket/client.js';
 import { Cache } from './cache.js';
-import { loadConfig, configSummary } from './config.js';
+import { loadConfig, configSummary, loadServerConfig } from './config.js';
 import { startHttpTransport } from './http.js';
 import { log, setLogLevel } from './logger.js';
 import { createServer } from './server.js';
@@ -32,6 +32,8 @@ async function bootstrap(): Promise<void> {
   setLogLevel(config.logLevel);
   log('info', 'config loaded', { operation: 'config_load', ...configSummary(config) });
 
+  const governor = await loadServerConfig();
+
   const client = new BitbucketClient(config);
   const cache = new Cache(config.cache);
 
@@ -40,10 +42,10 @@ async function bootstrap(): Promise<void> {
   let closeTransport: () => Promise<void>;
 
   if (config.transport.mode !== 'stdio') {
-    const handle = await startHttpTransport(config, client, cache);
+    const handle = await startHttpTransport(config, client, cache, governor);
     closeTransport = handle.close;
   } else {
-    const server = createServer(config, client, cache);
+    const server = createServer(config, client, cache, governor);
     const transport = new StdioServerTransport();
     await server.connect(transport);
     closeTransport = () => server.close();

@@ -32,11 +32,14 @@ import {
   updateCommentShape,
   updatePullRequestShape,
 } from './schemas.js';
+import { countOutputTokens } from './token-count.js';
+import { resolveMaxOutputTokens } from '../config.js';
+import { log } from '../logger.js';
 
 import type { createPrTools } from './pr-tools.js';
 import type { createRepoTools } from './repo-tools.js';
 import type { createSearchTools } from './search-tools.js';
-import type { McpToolResult } from '@types';
+import type { McpToolResult, ServerConfig } from '@types';
 import type { ZodRawShape } from 'zod';
 
 /** Bundle of instantiated tool handler factories consumed by the registry. */
@@ -248,4 +251,73 @@ export function buildToolRegistry(h: ToolHandlers): ReadonlyArray<ToolDefinition
       handler: h.search.bitbucket_search_commits,
     },
   ];
+}
+
+/**
+ * Build the guidance error text returned when a tool's response exceeds
+ * the configured output-token limit. The text names the tool, the
+ * estimated count, the configured limit, offers narrowing strategies, and
+ * describes both ways to raise the limit.
+ */
+export function buildTokenLimitGuidance(
+  toolName: string,
+  tokenCount: number,
+  limit: number
+): string {
+  return [
+    `Tool "${toolName}" produced an estimated ${tokenCount} output tokens, exceeding the configured limit of ${limit}.`,
+    "The full response was withheld to protect the caller's context budget.",
+    '',
+    'To narrow the request, try one or more of:',
+    `  - Reduce the "limit" argument if this tool accepts one.`,
+    `  - Filter by "project" and/or "repo" to scope the query.`,
+    `  - Call a single-item retrieval tool (e.g. bitbucket_get_pull_request, bitbucket_get_repository) instead of a list/search tool.`,
+    '',
+    'To raise the limit for this specific tool, add an entry to bitbucket-mcp.config.json:',
+    `  { "tools": { "${toolName}": { "maxOutputTokens": <higher-number> } } }`,
+    '',
+    'To raise the default limit for all tools, set the environment variable BITBUCKET_MCP_MAX_OUTPUT_TOKENS to a higher integer.',
+  ].join('\n');
+}
+
+/**
+ * Outermost wrapper around every registered tool's handler. Enforces the
+ * per-tool output-token limit resolved from the governor config, returning
+ * a guidance error rather than truncating when the limit is exceeded.
+ *
+ * The wrapper holds NO cache reference — cache invalidation on writes
+ * happens inside the inner handler per the mandatory execution order in
+ * claude-ref/tools.md, and is unaffected by whether the response passes
+ * or is withheld.
+ *
+ * Errors thrown by fn propagate unchanged (no try/catch here). Results
+ * that already carry isError: true pass through untouched and are never
+ * counted.
+ */
+export function toolHandler(
+  toolName: string,
+  governor: ServerConfig,
+  fn: (args: unknown) => Promise<McpToolResult>
+): (args: unknown) => Promise<McpToolResult> {
+  return async (args: unknown): Promise<McpToolResult> => {
+    const result = await fn(args);
+    if (result.isError === true) {
+      return result;
+    }
+    const tokenCount = countOutputTokens(result);
+    const limit = resolveMaxOutputTokens(governor, toolName);
+    if (tokenCount > limit) {
+      log('warn', 'output token limit exceeded', {
+        operation: 'tool_execute',
+        toolName,
+        tokenCount,
+        limit,
+      });
+      return {
+        content: [{ type: 'text', text: buildTokenLimitGuidance(toolName, tokenCount, limit) }],
+        isError: true,
+      };
+    }
+    return result;
+  };
 }

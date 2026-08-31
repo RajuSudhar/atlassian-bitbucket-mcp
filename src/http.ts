@@ -30,7 +30,7 @@ import { createServer } from './server.js';
 
 import type { BitbucketClient } from './bitbucket/client.js';
 import type { Cache } from './cache.js';
-import type { Config, TlsConfig } from '@types';
+import type { Config, ServerConfig, TlsConfig } from '@types';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import type { Server as HttpsServer } from 'node:https';
 
@@ -99,7 +99,8 @@ function jsonRpcError(res: ServerResponse, status: number, message: string): voi
 export async function startHttpTransport(
   config: Config,
   client: BitbucketClient,
-  cache: Cache
+  cache: Cache,
+  governor: ServerConfig
 ): Promise<HttpTransportHandle> {
   const { httpHost, httpPort, mode, tls } = config.transport;
   const transports = new Map<string, StreamableHTTPServerTransport>();
@@ -159,7 +160,7 @@ export async function startHttpTransport(
             });
           }
         };
-        const server = createServer(config, client, cache);
+        const server = createServer(config, client, cache, governor);
         await server.connect(transport);
       } else if (!transport) {
         jsonRpcError(res, 400, 'No valid session. Send an initialize request first.');
