@@ -60,6 +60,13 @@ direct typed API use in CI scripts (no MCP protocol, no permission gating)
 batched reviews (start/publish/discard) via `state: PENDING` comments +
 `/pull-requests/{id}/review`; `pending` flag on the 4 comment/task tools
 
+### Phase 7 — Response governance
+
+[ ] feat-output-token-limits → docs/plans/phase-7/feat-output-token-limits/plan.md —
+per-tool output-token-limit governor (config-file + env driven), ported from
+plane-mcp: rejects oversize tool responses with an actionable guidance error
+instead of truncating
+
 ## Done (across branches)
 
 - Initial repo scaffold (package.json, tsconfig.json, eslint, prettier, husky, docs/)
