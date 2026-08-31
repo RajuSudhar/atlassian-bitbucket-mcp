@@ -9,7 +9,7 @@ TypeScript MCP server for Bitbucket Cloud + Server/DC. Node>=20, pnpm, PAT auth,
 - `log()` from `src/logger.ts`; no `console.*`
 - Never log/emit `BITBUCKET_TOKEN`; HTTPS only
 - No `any`, no emojis, no `--no-verify`
-- Exact pinned deps; security-check before add; both lockfiles in sync
+- Exact pinned deps; security-check before add
 - Touching `types/bitbucket.ts` → update `openapi/*.yaml` in same commit
 
 ## Routing — read before acting
@@ -24,7 +24,7 @@ TypeScript MCP server for Bitbucket Cloud + Server/DC. Node>=20, pnpm, PAT auth,
 | Writing/running tests                        | `claude-ref/testing.md`           |
 | Branch name, commit message                  | `claude-ref/branching.md`         |
 | Adding a dep, token handling                 | `claude-ref/security.md`          |
-| Lockfile ops, pnpm/npm                       | `claude-ref/packages.md`          |
+| Lockfile ops, pnpm                           | `claude-ref/packages.md`          |
 | OpenAPI edit, type generation                | `claude-ref/openapi.md`           |
 | Starting a feature                           | `docs/plans/TRACK.md` → phase dir |
 
@@ -37,9 +37,9 @@ TypeScript MCP server for Bitbucket Cloud + Server/DC. Node>=20, pnpm, PAT auth,
 ## Commands
 
 ```bash
-pnpm install | build | watch | typecheck | lint:all | format:all | validate | sync:locks | branch:create
+pnpm install | build | watch | typecheck | lint:all | format:all | validate | branch:create
 ./scripts/check-package-security.sh <pkg>
 pnpm run types:gen   # openapi → types (phase 1)
 ```
 
-Source docs (human-readable, verbose): `README.md`, `docs/ARCHITECTURE.md`, `docs/CODING-STANDARDS.md`, `docs/BRANCH-MANAGEMENT.md`, `docs/SECURITY.md`, `docs/PACKAGE-MANAGERS.md`. Prefer `claude-ref/` for execution.
+Source docs (human-readable, verbose): `README.md`, `docs/ARCHITECTURE.md`, `docs/CODING-STANDARDS.md`, `docs/BRANCH-MANAGEMENT.md`, `docs/SECURITY.md`. Prefer `claude-ref/` for execution.

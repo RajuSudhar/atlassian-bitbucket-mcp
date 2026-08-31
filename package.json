@@ -49,7 +49,6 @@
     "typecheck": "tsc --noEmit",
     "validate": "pnpm run format:all && pnpm run lint:all && pnpm run typecheck",
     "validate:branch": "./scripts/validate-branch-name.sh",
-    "sync:locks": "./scripts/sync-lock-files.sh",
     "types:gen": "./scripts/gen-types.sh",
     "types:check-drift": "./scripts/check-types-drift.sh",
     "pretest": "pnpm run build",
@@ -94,6 +93,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.23.0",
+    "gpt-tokenizer": "4.0.0",
     "zod": "4.1.13"
   }
 }

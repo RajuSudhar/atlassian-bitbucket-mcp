@@ -21,7 +21,7 @@ pull request reviews, code search, and repository operations.
 ## Requirements
 
 - Node.js >= 20.0.0
-- pnpm (recommended) or npm/yarn
+- pnpm
 - Bitbucket Personal Access Token (Cloud or Server/Data Center)
 - Access to a Bitbucket instance (Cloud or self-hosted)
 

@@ -29,3 +29,13 @@ If you discover a security vulnerability, please email [your-email] instead of u
 - Regular `npm audit` runs
 - Automated dependency updates with security review
 - Minimal dependency footprint to reduce attack surface
+
+### Reviewed Dependencies
+
+#### gpt-tokenizer
+
+- **Version**: `4.0.0` (exact-pinned via `--save-exact`)
+- **Purpose**: Estimate Claude output token cost for the per-tool response-size governor (Phase 7).
+- **Audit result**: 0 high/critical advisories attributable to this package at install time.
+- **Why exact pin**: A minor bump that changes the tokenizer vocabulary or merge rules would silently shift the enforced token limits. Reproducibility across installs is essential.
+- **Review date**: 2026-08-31

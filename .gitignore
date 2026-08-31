@@ -5,9 +5,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Lock files (we commit both npm and pnpm lock files for cross-compatibility)
-# package-lock.json - committed for npm users
-# pnpm-lock.yaml - committed for pnpm users
+# Lock files
+# pnpm is the only supported package manager; see CLAUDE.md
+package-lock.json
 yarn.lock
 
 # Build outputs
