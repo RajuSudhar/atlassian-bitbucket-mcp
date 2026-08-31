@@ -21,7 +21,9 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { BitbucketClient } from './bitbucket/client.js';
 import { Cache } from './cache.js';
 import { loadConfig, configSummary, loadServerConfig } from './config.js';
+import { printHelp } from './help.js';
 import { startHttpTransport } from './http.js';
+import { runInit } from './init.js';
 import { log, setLogLevel } from './logger.js';
 import { createServer } from './server.js';
 
@@ -75,8 +77,22 @@ async function bootstrap(): Promise<void> {
   process.on('SIGTERM', onSignal);
 }
 
-bootstrap().catch((err: unknown) => {
-  log('error', 'fatal error during bootstrap', {
+const [, , command, ...rest] = process.argv;
+
+async function main(): Promise<void> {
+  if (command === 'help' || command === '--help' || command === '-h') {
+    printHelp();
+    return;
+  }
+  if (command === 'init') {
+    await runInit(rest);
+    return;
+  }
+  await bootstrap();
+}
+
+main().catch((err: unknown) => {
+  log('error', 'fatal error', {
     operation: 'server_init',
     error: err instanceof Error ? err.message : String(err),
   });
