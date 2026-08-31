@@ -52,6 +52,7 @@
     "types:gen": "./scripts/gen-types.sh",
     "types:check-drift": "./scripts/check-types-drift.sh",
     "pretest": "pnpm run build",
+    "schema:gen": "pnpm run build && node scripts/generate-config-schema.mjs",
     "test": "node --test test/*.test.mjs"
   },
   "keywords": [

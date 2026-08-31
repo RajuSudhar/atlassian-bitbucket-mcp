@@ -1,0 +1,14 @@
+{
+  "$schema": "./bitbucket-mcp.config.schema.json",
+  "defaults": {
+    "maxOutputTokens": 25000
+  },
+  "tools": {
+    "bitbucket_list_pull_requests": {
+      "maxOutputTokens": 10000
+    },
+    "bitbucket_search_code": {
+      "maxOutputTokens": 10000
+    }
+  }
+}

@@ -99,6 +99,17 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         process: 'readonly',
+        URL: 'readonly',
+      },
+    },
+  },
+  {
+    // Scripts run on Node as plain ESM.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        URL: 'readonly',
       },
     },
   },
