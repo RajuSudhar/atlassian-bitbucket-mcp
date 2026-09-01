@@ -25,3 +25,18 @@ Subject: imperative, lowercase, no trailing period, no emojis, ≤ 72 chars.
 Body: wrap at 72; explain _why_, not _what_.
 
 Footer: `BREAKING CHANGE:` or `Refs: TICKET-123`.
+
+## Release tagging
+
+Every version bump or `npm publish` (including betas) gets an annotated
+`v<version>` git tag on the release commit, kept in lockstep with the
+npm dist-tag. Example for a beta:
+
+```bash
+git tag -a v1.0.0-beta.0 -m "Release 1.0.0-beta.0 (beta channel)"
+git push origin v1.0.0-beta.0
+pnpm publish --tag beta --access public
+```
+
+Never delete or re-point a release tag. If a beta needs a hotfix, cut a
+new tag (`v1.0.0-beta.1`).

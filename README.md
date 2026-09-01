@@ -51,6 +51,17 @@ and repo slug `nimble`.
 
 ### 2. Installation
 
+> **Beta channel:** the current release stream is `1.0.0-beta.0` on the
+> npm `beta` dist-tag. Install with:
+>
+> ```bash
+> npm install atlassian-bitbucket-mcp@beta
+> # or
+> pnpm add atlassian-bitbucket-mcp@beta
+> ```
+>
+> The `latest` dist-tag is not published yet.
+
 ```bash
 pnpm install
 ```

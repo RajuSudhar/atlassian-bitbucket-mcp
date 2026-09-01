@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-beta.0] - 2026-09-01
+
 ### Added
 
 - Batched PR reviews (Bitbucket's _Start review_ / _Finish review_) on
@@ -56,6 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the `postinstall` build step so consumers installing the published
   package (e.g. via `npx`) receive the prebuilt `dist/` rather than attempting
   to compile without dev dependencies.
+
+### Notes
+
+- Ports the per-tool output-token-limit governor from the sibling
+  plane-mcp project. See `docs/plans/phase-7/feat-output-token-limits/`.
 
 ## [0.1.0] - 2026-04-25
 
