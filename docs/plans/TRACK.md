@@ -62,7 +62,7 @@ batched reviews (start/publish/discard) via `state: PENDING` comments +
 
 ### Phase 7 — Response governance
 
-[ ] feat-output-token-limits → docs/plans/phase-7/feat-output-token-limits/plan.md —
+[x] feat-output-token-limits → docs/plans/phase-7/feat-output-token-limits/plan.md —
 per-tool output-token-limit governor (config-file + env driven), ported from
 plane-mcp: rejects oversize tool responses with an actionable guidance error
 instead of truncating

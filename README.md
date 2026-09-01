@@ -171,6 +171,9 @@ All configuration is done through environment variables. See [`.env.example`](./
 - `MCP_HTTP_TLS_CERT_FILE` / `MCP_HTTP_TLS_KEY_FILE` - PEM certificate/key
   paths, both required when `MCP_TRANSPORT=https` (ignored otherwise)
 - `NODE_EXTRA_CA_CERTS` - PEM path for a self-hosted internal CA (outbound TLS)
+- `BITBUCKET_MCP_CONFIG`, `BITBUCKET_MCP_MAX_OUTPUT_TOKENS`,
+  `BITBUCKET_MCP_CONFIG_DIR` — output-token-limit governor (see
+  [Per-tool output-token limits](#per-tool-output-token-limits))
 - See [`.env.example`](./.env.example) for all options
 
 ### Creating a Personal Access Token
@@ -192,6 +195,78 @@ All configuration is done through environment variables. See [`.env.example`](./
    - **Project permissions**: Read
    - **Repository permissions**: Read, Write
 4. Click **Create** and copy the token
+
+## Per-tool output-token limits
+
+The server can withhold oversize tool responses and return an actionable
+guidance error instead of streaming a wall of content that blows past the
+caller's context budget. When enabled (it is, by default, at 25,000
+tokens), each tool's response is estimated with `gpt-tokenizer`'s
+`o200k_base` encoding scaled by 1.2× (Claude runs ~15–20% higher than
+GPT-4o for prose) and compared against a configurable per-tool limit.
+
+### Discovery precedence
+
+The governor loads config from the first available source:
+
+1. `BITBUCKET_MCP_CONFIG` env var — absolute path. Errors at startup if
+   the file does not exist.
+2. `./bitbucket-mcp.config.json` — in the current working directory.
+3. `$XDG_CONFIG_HOME/bitbucket-mcp/config.json` — or
+   `~/.config/bitbucket-mcp/config.json` if `$XDG_CONFIG_HOME` is unset.
+   `$BITBUCKET_MCP_CONFIG_DIR` overrides the directory portion of this
+   lookup.
+4. Built-in default (25,000 tokens across all tools).
+
+### Environment variables
+
+- `BITBUCKET_MCP_CONFIG` — absolute path to the config file.
+- `BITBUCKET_MCP_MAX_OUTPUT_TOKENS` — integer > 0. Overrides
+  `defaults.maxOutputTokens` from the file. Never overrides a
+  per-tool value.
+- `BITBUCKET_MCP_CONFIG_DIR` — overrides the XDG config directory used
+  for the fallback config path.
+
+### JSON config shape
+
+`bitbucket-mcp.config.json`:
+
+```json
+{
+  "$schema": "./bitbucket-mcp.config.schema.json",
+  "defaults": { "maxOutputTokens": 25000 },
+  "tools": {
+    "bitbucket_list_pull_requests": { "maxOutputTokens": 10000 },
+    "bitbucket_search_code": { "maxOutputTokens": 10000 }
+  }
+}
+```
+
+The schema is strict — unknown keys fail startup, so typos in the config
+are caught immediately. `bitbucket-mcp.config.schema.json` is committed at
+repo root and can be regenerated with `pnpm run schema:gen` after any
+change to `serverConfigSchema`.
+
+Per-tool `tools.<name>.maxOutputTokens` always wins over the default and
+cannot be overridden by env.
+
+### Scaffolding
+
+`atlassian-bitbucket-mcp init` writes a starter config to the XDG default
+location. Flags: `--config-path <path>`, `--max-output-tokens <n>`, `-y`
+(overwrite existing).
+
+`atlassian-bitbucket-mcp help` prints usage, discovery order, env vars,
+and JSON shape — offline reference for the same information above.
+
+### What the guidance error looks like
+
+When a tool's response exceeds its limit, the caller receives an
+`isError: true` result whose text names the tool, the estimated token
+count, the configured limit, narrowing suggestions (reduce `limit`,
+filter by `project`/`repo`, call a single-item retrieval tool), and both
+ways to raise the ceiling (per-tool config entry or the env var). The
+full response is withheld — nothing is truncated silently.
 
 ## Available MCP Tools
 

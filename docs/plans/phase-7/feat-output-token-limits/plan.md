@@ -96,8 +96,56 @@ outer return" at the registration boundary, not inside any handler body.
 
 ## Deviations changelog
 
-_(empty — appended by the orchestrator when phase reality diverges from this
-plan)_
+1. **Phase 01 seal — commit body wrap** — repo policy hooks blocked both
+   `git commit -F <file>` (shell-runner cannot write to `/tmp` under this
+   environment's permission profile) and `git commit -F -` heredoc syntax
+   (git-ops policy: "unparseable quoting"). The only workable seal path is
+   `git commit -m <subject> -m <para1> -m <para2> -m <para3>`, which
+   places each body paragraph on a single unwrapped line. This violates
+   the plan's implicit 72-column body-wrap style for every phase from 01
+   onward. Behavior and content unchanged; presentation only.
+
+2. **Phase 02 combined commit — infra + feature** — adding
+   `gpt-tokenizer@4.0.0` regenerated `pnpm-lock.yaml` with `catalog:`
+   protocol, which the local Node-20 + npm-10 environment cannot parse.
+   `scripts/sync-lock-files.sh` accordingly failed to regenerate
+   `package-lock.json`, and hand-crafting one would have violated
+   `claude-ref/packages.md`'s "never hand-edit lockfiles" rule. User
+   approved converting the repo to pnpm-only: `package-lock.json` and
+   `scripts/sync-lock-files.sh` were removed, `package.json`'s
+   `sync:locks` script and its pre-commit invocation were removed, and
+   `CLAUDE.md` / `claude-ref/packages.md` were rewritten to drop the
+   "both lockfiles in sync" hard rule. Landed as a single
+   `feat(tools): add gpt-tokenizer output token counter` commit because
+   the infra pivot was causally forced by the dep addition and could not
+   land independently.
+
+3. **Phase 04 scope-creep — eslint.config.js** — `scripts/**/*.mjs` had
+   no ESLint globals block, so the new `scripts/generate-config-schema.mjs`
+   tripped `no-undef` on `process` and `URL`. `eslint.config.js` gained a
+   matching globals block additive-only; no rules removed or weakened.
+   Not in Phase 04's Files-to-touch list, judged LOW by review.
+
+4. **Phase 05 — `deps.exit` injection point** — the plan's `RunInitDeps`
+   did not include an `exit` field. User-input errors in `runInit` call
+   `process.exit(1)` to produce a single stderr line + non-zero exit;
+   tests need to intercept that without killing the test process, so
+   `RunInitDeps` gained `exit?: (code: number) => never` as the sole
+   injection point. Defaults to `process.exit` in production; tests
+   substitute a throwing mock. Structural addition to the type, not a
+   behavior change.
+
+5. **Post-commit hook drift, waived** — the repo's pre-commit hook chain
+   (prettier + related) reformats `docs/plans/phase-7/feat-output-token-
+   limits/plan.md`, `test/token-limit.test.mjs`, and both
+   `types/generated/bitbucket-*.d.ts` files after every commit. The plan
+   doc reformats are cosmetic; the generated-type reformats are the
+   known "commit raw gen output, not prettier's reformat" case flagged in
+   the user's persistent memory. Every phase seal from 00 onward has
+   restored these files from HEAD via `git checkout HEAD -- <paths>`
+   before staging phase files, per user's standing "discard drift and
+   proceed" waiver from the Phase 00 seal cycle. Not a per-phase
+   deviation; a session-wide operating norm.
 
 ---
 
@@ -353,7 +401,7 @@ pnpm audit
       dependency.
 - [ ] `countOutputTokens({ content: [] })` → `0`.
 - [ ] A known short string's count matches `Math.ceil(encode(str).length *
-    1.2)` exactly (pins the multiplier behavior).
+  1.2)` exactly (pins the multiplier behavior).
 - [ ] `docs/SECURITY.md` has the new dependency entry with audit result and
       review date.
 

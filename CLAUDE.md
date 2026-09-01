@@ -25,6 +25,7 @@ TypeScript MCP server for Bitbucket Cloud + Server/DC. Node>=20, pnpm, PAT auth,
 | Branch name, commit message                  | `claude-ref/branching.md`         |
 | Adding a dep, token handling                 | `claude-ref/security.md`          |
 | Lockfile ops, pnpm                           | `claude-ref/packages.md`          |
+| Output-token governor config, precedence     | `claude-ref/config.md`            |
 | OpenAPI edit, type generation                | `claude-ref/openapi.md`           |
 | Starting a feature                           | `docs/plans/TRACK.md` → phase dir |
 
