@@ -44,3 +44,6 @@ temp/
 
 # Security - compromised packages reference
 COMPROMISED_PACKAGES.txt
+
+# keep project Claude context tracked (overrides global ignore)
+!.claude/

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/validate-branch-name.sh)",
+      "Bash(launchctl list *)",
+      "Bash(./scripts/install-macos-service.sh *)",
+      "Bash(launchctl bootstrap *)",
+      "Bash(curl -fsS http://127.0.0.1:3900/health)",
+      "Bash(mkdir -p /private/tmp/claude-502/-Users-sudharsan-r-Desktop-projects-atlassian-bitbucket-mcp/ae33e608-c87c-4fe1-94df-71a5ce7433da/scratchpad/pre-https)"
+    ]
+  }
+}
