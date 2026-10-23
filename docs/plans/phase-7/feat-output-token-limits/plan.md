@@ -137,7 +137,7 @@ outer return" at the registration boundary, not inside any handler body.
 
 5. **Post-commit hook drift, waived** — the repo's pre-commit hook chain
    (prettier + related) reformats `docs/plans/phase-7/feat-output-token-
-   limits/plan.md`, `test/token-limit.test.mjs`, and both
+limits/plan.md`, `test/token-limit.test.mjs`, and both
    `types/generated/bitbucket-*.d.ts` files after every commit. The plan
    doc reformats are cosmetic; the generated-type reformats are the
    known "commit raw gen output, not prettier's reformat" case flagged in
@@ -401,7 +401,7 @@ pnpm audit
       dependency.
 - [ ] `countOutputTokens({ content: [] })` → `0`.
 - [ ] A known short string's count matches `Math.ceil(encode(str).length *
-  1.2)` exactly (pins the multiplier behavior).
+1.2)` exactly (pins the multiplier behavior).
 - [ ] `docs/SECURITY.md` has the new dependency entry with audit result and
       review date.
 

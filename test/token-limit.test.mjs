@@ -175,7 +175,11 @@ describe('Unit: toolHandler', () => {
 
     // Should return unchanged without accessing content, proving countOutputTokens was not called
     assert.equal(wrapped_result.isError, true);
-    assert.equal(contentAccessCount, 0, 'content getter should not be accessed (countOutputTokens not called)');
+    assert.equal(
+      contentAccessCount,
+      0,
+      'content getter should not be accessed (countOutputTokens not called)'
+    );
   });
 
   it('should not perform cache operations regardless of limit outcome', async () => {

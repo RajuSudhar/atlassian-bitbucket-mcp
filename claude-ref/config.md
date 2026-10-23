@@ -35,7 +35,7 @@ which never calls `loadConfig()` or `loadServerConfig()`.
 - Counts tokens via `countOutputTokens` (`src/tools/token-count.ts`,
   gpt-tokenizer o200k_base × 1.2 multiplier).
 - Over limit → returns `{isError: true, content: [{type: 'text', text:
-  buildTokenLimitGuidance(...)}]}`. Under limit → passes through
+buildTokenLimitGuidance(...)}]}`. Under limit → passes through
   byte-for-byte. Handler throws propagate unchanged.
 - Holds no `Cache` reference; cache invalidation on writes happens inside
   the inner handler and is unaffected by whether the response passes or

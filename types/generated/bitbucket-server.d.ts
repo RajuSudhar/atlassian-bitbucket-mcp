@@ -4,439 +4,439 @@
  */
 
 export interface paths {
-    readonly "/projects/{project}/repos/{repo}/pull-requests/{prId}/blocker-comments": {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path?: never;
-            readonly cookie?: never;
-        };
-        /**
-         * List blocker comments (root + reply) for a pull request
-         * @description Returns ALL BLOCKER-severity comments (root-level and nested replies)
-         *     for a pull request. Supports optional state filtering and pagination.
-         *     Requires Bitbucket Server/DC 7.2+.
-         */
-        readonly get: operations["getBlockerComments"];
-        readonly put?: never;
-        readonly post?: never;
-        readonly delete?: never;
-        readonly options?: never;
-        readonly head?: never;
-        readonly patch?: never;
-        readonly trace?: never;
+  readonly '/projects/{project}/repos/{repo}/pull-requests/{prId}/blocker-comments': {
+    readonly parameters: {
+      readonly query?: never;
+      readonly header?: never;
+      readonly path?: never;
+      readonly cookie?: never;
     };
-    readonly "/projects/{project}/repos/{repo}/pull-requests/{prId}/review": {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path: {
-                /** @description Project key */
-                readonly project: string;
-                /** @description Repository slug */
-                readonly repo: string;
-                /** @description Pull request ID */
-                readonly prId: number;
-            };
-            readonly cookie?: never;
-        };
-        /**
-         * List the pending (unpublished) comment threads in the caller's review
-         * @description Returns the comment threads whose comments are in `PENDING` state and
-         *     belong to the authenticated user's in-progress review of this pull
-         *     request. Pending comments are visible only to their author until the
-         *     review is published. Requires Bitbucket Server/DC 7.7+.
-         *
-         *     A review session has no explicit "start" endpoint: Bitbucket opens one
-         *     implicitly when the first `PENDING` comment is created via
-         *     `POST .../pull-requests/{prId}/comments` with `state: PENDING`.
-         */
-        readonly get: operations["getPullRequestReview"];
-        /**
-         * Publish the caller's review (finish review)
-         * @description Publishes every `PENDING` comment in the authenticated user's review in
-         *     one batch, optionally adding an overview comment and setting the
-         *     caller's participant status. Requires Bitbucket Server/DC 7.7+.
-         */
-        readonly put: operations["publishPullRequestReview"];
-        readonly post?: never;
-        /**
-         * Discard the caller's review
-         * @description Deletes every `PENDING` comment in the authenticated user's review
-         *     without notifying the pull request author. Requires Bitbucket
-         *     Server/DC 7.7+.
-         */
-        readonly delete: operations["discardPullRequestReview"];
-        readonly options?: never;
-        readonly head?: never;
-        readonly patch?: never;
-        readonly trace?: never;
+    /**
+     * List blocker comments (root + reply) for a pull request
+     * @description Returns ALL BLOCKER-severity comments (root-level and nested replies)
+     *     for a pull request. Supports optional state filtering and pagination.
+     *     Requires Bitbucket Server/DC 7.2+.
+     */
+    readonly get: operations['getBlockerComments'];
+    readonly put?: never;
+    readonly post?: never;
+    readonly delete?: never;
+    readonly options?: never;
+    readonly head?: never;
+    readonly patch?: never;
+    readonly trace?: never;
+  };
+  readonly '/projects/{project}/repos/{repo}/pull-requests/{prId}/review': {
+    readonly parameters: {
+      readonly query?: never;
+      readonly header?: never;
+      readonly path: {
+        /** @description Project key */
+        readonly project: string;
+        /** @description Repository slug */
+        readonly repo: string;
+        /** @description Pull request ID */
+        readonly prId: number;
+      };
+      readonly cookie?: never;
     };
+    /**
+     * List the pending (unpublished) comment threads in the caller's review
+     * @description Returns the comment threads whose comments are in `PENDING` state and
+     *     belong to the authenticated user's in-progress review of this pull
+     *     request. Pending comments are visible only to their author until the
+     *     review is published. Requires Bitbucket Server/DC 7.7+.
+     *
+     *     A review session has no explicit "start" endpoint: Bitbucket opens one
+     *     implicitly when the first `PENDING` comment is created via
+     *     `POST .../pull-requests/{prId}/comments` with `state: PENDING`.
+     */
+    readonly get: operations['getPullRequestReview'];
+    /**
+     * Publish the caller's review (finish review)
+     * @description Publishes every `PENDING` comment in the authenticated user's review in
+     *     one batch, optionally adding an overview comment and setting the
+     *     caller's participant status. Requires Bitbucket Server/DC 7.7+.
+     */
+    readonly put: operations['publishPullRequestReview'];
+    readonly post?: never;
+    /**
+     * Discard the caller's review
+     * @description Deletes every `PENDING` comment in the authenticated user's review
+     *     without notifying the pull request author. Requires Bitbucket
+     *     Server/DC 7.7+.
+     */
+    readonly delete: operations['discardPullRequestReview'];
+    readonly options?: never;
+    readonly head?: never;
+    readonly patch?: never;
+    readonly trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        readonly User: {
-            readonly name: string;
-            readonly emailAddress: string;
-            readonly displayName: string;
-            readonly slug?: string;
-            readonly id?: number;
-            readonly active?: boolean;
-        };
-        readonly Project: {
-            readonly key: string;
-            readonly name: string;
-            readonly description?: string;
-            readonly public?: boolean;
-            readonly id?: number;
-        };
-        readonly LinkHref: {
-            readonly href: string;
-        };
-        readonly LinkClone: {
-            readonly href: string;
-            readonly name: string;
-        };
-        readonly Links: {
-            readonly self?: readonly components["schemas"]["LinkHref"][];
-            readonly clone?: readonly components["schemas"]["LinkClone"][];
-        };
-        readonly Repository: {
-            readonly slug: string;
-            readonly name: string;
-            readonly project: components["schemas"]["Project"];
-            readonly description?: string;
-            readonly forkable?: boolean;
-            readonly public?: boolean;
-            readonly scmId?: string;
-            readonly state?: string;
-            readonly links?: components["schemas"]["Links"];
-        };
-        /** @enum {string} */
-        readonly PullRequestState: "OPEN" | "MERGED" | "DECLINED";
-        /** @enum {string} */
-        readonly ParticipantRole: "AUTHOR" | "REVIEWER" | "PARTICIPANT";
-        /** @enum {string} */
-        readonly ParticipantStatus: "UNAPPROVED" | "NEEDS_WORK" | "APPROVED";
-        readonly Participant: {
-            readonly user: components["schemas"]["User"];
-            readonly role?: components["schemas"]["ParticipantRole"];
-            readonly approved?: boolean;
-            readonly status?: components["schemas"]["ParticipantStatus"];
-        };
-        readonly Ref: {
-            readonly id: string;
-            readonly displayId: string;
-            readonly latestCommit?: string;
-            readonly repository?: components["schemas"]["Repository"];
-        };
-        readonly PullRequest: {
-            readonly id: number;
-            readonly title: string;
-            readonly description?: string;
-            readonly state: components["schemas"]["PullRequestState"];
-            readonly author: components["schemas"]["Participant"];
-            readonly reviewers?: readonly components["schemas"]["Participant"][];
-            readonly fromRef: components["schemas"]["Ref"];
-            readonly toRef: components["schemas"]["Ref"];
-            readonly version: number;
-            /** Format: int64 */
-            readonly createdDate: number;
-            /** Format: int64 */
-            readonly updatedDate: number;
-            /** Format: int64 */
-            readonly closedDate?: number;
-            readonly locked?: boolean;
-            readonly links?: components["schemas"]["Links"];
-        };
-        readonly Branch: {
-            readonly id: string;
-            readonly displayId: string;
-            readonly type?: string;
-            readonly latestCommit: string;
-            readonly latestChangeset?: string;
-            readonly isDefault?: boolean;
-        };
-        readonly CommitParent: {
-            readonly id: string;
-            readonly displayId: string;
-        };
-        readonly Commit: {
-            readonly id: string;
-            readonly displayId: string;
-            readonly message: string;
-            readonly author: components["schemas"]["User"];
-            /** Format: int64 */
-            readonly authorTimestamp: number;
-            readonly committer?: components["schemas"]["User"];
-            /** Format: int64 */
-            readonly committerTimestamp?: number;
-            readonly parents?: readonly components["schemas"]["CommitParent"][];
-        };
-        /** @enum {string} */
-        readonly CommentSeverity: "NORMAL" | "BLOCKER";
-        /** @enum {string} */
-        readonly CommentState: "OPEN" | "RESOLVED" | "PENDING";
-        readonly PublishReviewRequest: {
-            /** @description Optional overview comment posted alongside the review */
-            readonly commentText?: string;
-            readonly participantStatus?: components["schemas"]["ParticipantStatus"];
-        };
-        readonly PublishReviewResult: {
-            readonly publishedCommentCount: number;
-        };
-        /** @enum {string} */
-        readonly LineType: "ADDED" | "REMOVED" | "CONTEXT";
-        /** @enum {string} */
-        readonly FileType: "FROM" | "TO";
-        readonly CommentAnchor: {
-            readonly path: string;
-            readonly line: number;
-            readonly lineType: components["schemas"]["LineType"];
-            readonly fileType?: components["schemas"]["FileType"];
-        };
-        readonly Comment: {
-            readonly id: number;
-            readonly text: string;
-            readonly author: components["schemas"]["User"];
-            /** Format: int64 */
-            readonly createdDate: number;
-            /** Format: int64 */
-            readonly updatedDate: number;
-            readonly severity?: components["schemas"]["CommentSeverity"];
-            readonly state?: components["schemas"]["CommentState"];
-            readonly anchor?: components["schemas"]["CommentAnchor"];
-            readonly comments?: readonly components["schemas"]["Comment"][];
-        };
-        readonly Activity: {
-            readonly id: number;
-            /** Format: int64 */
-            readonly createdDate: number;
-            readonly action: string;
-            readonly user: components["schemas"]["User"];
-            readonly comment?: components["schemas"]["Comment"];
-        };
-        readonly DiffSegment: {
-            readonly type: components["schemas"]["LineType"];
-            readonly lines: readonly {
-                readonly line: number;
-                readonly source: number;
-                readonly destination: number;
-            }[];
-        };
-        readonly DiffHunk: {
-            readonly sourceLine: number;
-            readonly sourceSpan: number;
-            readonly destinationLine: number;
-            readonly destinationSpan: number;
-            readonly segments: readonly components["schemas"]["DiffSegment"][];
-        };
-        readonly DiffPath: {
-            readonly toString?: string;
-        };
-        readonly DiffEntry: {
-            readonly source?: components["schemas"]["DiffPath"];
-            readonly destination?: components["schemas"]["DiffPath"];
-            readonly hunks?: readonly components["schemas"]["DiffHunk"][];
-        };
-        readonly Diff: {
-            readonly diffs: readonly components["schemas"]["DiffEntry"][];
-            readonly truncated?: boolean;
-        };
-        readonly SearchHitFile: {
-            readonly path: string;
-            readonly name: string;
-        };
-        readonly SearchHitContext: {
-            readonly context: string;
-        };
-        readonly SearchHit: {
-            readonly file?: components["schemas"]["SearchHitFile"];
-            readonly pathMatches?: readonly unknown[];
-            readonly hitContexts?: readonly components["schemas"]["SearchHitContext"][];
-        };
-        readonly SearchResult: {
-            readonly query: string;
-            readonly limit: number;
-            readonly count: number;
-            readonly values: readonly components["schemas"]["SearchHit"][];
-        };
-        readonly PagedResponseMeta: {
-            readonly size: number;
-            readonly limit: number;
-            readonly start: number;
-            readonly isLastPage: boolean;
-            readonly nextPageStart?: number;
-        };
+  schemas: {
+    readonly User: {
+      readonly name: string;
+      readonly emailAddress: string;
+      readonly displayName: string;
+      readonly slug?: string;
+      readonly id?: number;
+      readonly active?: boolean;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    readonly Project: {
+      readonly key: string;
+      readonly name: string;
+      readonly description?: string;
+      readonly public?: boolean;
+      readonly id?: number;
+    };
+    readonly LinkHref: {
+      readonly href: string;
+    };
+    readonly LinkClone: {
+      readonly href: string;
+      readonly name: string;
+    };
+    readonly Links: {
+      readonly self?: readonly components['schemas']['LinkHref'][];
+      readonly clone?: readonly components['schemas']['LinkClone'][];
+    };
+    readonly Repository: {
+      readonly slug: string;
+      readonly name: string;
+      readonly project: components['schemas']['Project'];
+      readonly description?: string;
+      readonly forkable?: boolean;
+      readonly public?: boolean;
+      readonly scmId?: string;
+      readonly state?: string;
+      readonly links?: components['schemas']['Links'];
+    };
+    /** @enum {string} */
+    readonly PullRequestState: 'OPEN' | 'MERGED' | 'DECLINED';
+    /** @enum {string} */
+    readonly ParticipantRole: 'AUTHOR' | 'REVIEWER' | 'PARTICIPANT';
+    /** @enum {string} */
+    readonly ParticipantStatus: 'UNAPPROVED' | 'NEEDS_WORK' | 'APPROVED';
+    readonly Participant: {
+      readonly user: components['schemas']['User'];
+      readonly role?: components['schemas']['ParticipantRole'];
+      readonly approved?: boolean;
+      readonly status?: components['schemas']['ParticipantStatus'];
+    };
+    readonly Ref: {
+      readonly id: string;
+      readonly displayId: string;
+      readonly latestCommit?: string;
+      readonly repository?: components['schemas']['Repository'];
+    };
+    readonly PullRequest: {
+      readonly id: number;
+      readonly title: string;
+      readonly description?: string;
+      readonly state: components['schemas']['PullRequestState'];
+      readonly author: components['schemas']['Participant'];
+      readonly reviewers?: readonly components['schemas']['Participant'][];
+      readonly fromRef: components['schemas']['Ref'];
+      readonly toRef: components['schemas']['Ref'];
+      readonly version: number;
+      /** Format: int64 */
+      readonly createdDate: number;
+      /** Format: int64 */
+      readonly updatedDate: number;
+      /** Format: int64 */
+      readonly closedDate?: number;
+      readonly locked?: boolean;
+      readonly links?: components['schemas']['Links'];
+    };
+    readonly Branch: {
+      readonly id: string;
+      readonly displayId: string;
+      readonly type?: string;
+      readonly latestCommit: string;
+      readonly latestChangeset?: string;
+      readonly isDefault?: boolean;
+    };
+    readonly CommitParent: {
+      readonly id: string;
+      readonly displayId: string;
+    };
+    readonly Commit: {
+      readonly id: string;
+      readonly displayId: string;
+      readonly message: string;
+      readonly author: components['schemas']['User'];
+      /** Format: int64 */
+      readonly authorTimestamp: number;
+      readonly committer?: components['schemas']['User'];
+      /** Format: int64 */
+      readonly committerTimestamp?: number;
+      readonly parents?: readonly components['schemas']['CommitParent'][];
+    };
+    /** @enum {string} */
+    readonly CommentSeverity: 'NORMAL' | 'BLOCKER';
+    /** @enum {string} */
+    readonly CommentState: 'OPEN' | 'RESOLVED' | 'PENDING';
+    readonly PublishReviewRequest: {
+      /** @description Optional overview comment posted alongside the review */
+      readonly commentText?: string;
+      readonly participantStatus?: components['schemas']['ParticipantStatus'];
+    };
+    readonly PublishReviewResult: {
+      readonly publishedCommentCount: number;
+    };
+    /** @enum {string} */
+    readonly LineType: 'ADDED' | 'REMOVED' | 'CONTEXT';
+    /** @enum {string} */
+    readonly FileType: 'FROM' | 'TO';
+    readonly CommentAnchor: {
+      readonly path: string;
+      readonly line: number;
+      readonly lineType: components['schemas']['LineType'];
+      readonly fileType?: components['schemas']['FileType'];
+    };
+    readonly Comment: {
+      readonly id: number;
+      readonly text: string;
+      readonly author: components['schemas']['User'];
+      /** Format: int64 */
+      readonly createdDate: number;
+      /** Format: int64 */
+      readonly updatedDate: number;
+      readonly severity?: components['schemas']['CommentSeverity'];
+      readonly state?: components['schemas']['CommentState'];
+      readonly anchor?: components['schemas']['CommentAnchor'];
+      readonly comments?: readonly components['schemas']['Comment'][];
+    };
+    readonly Activity: {
+      readonly id: number;
+      /** Format: int64 */
+      readonly createdDate: number;
+      readonly action: string;
+      readonly user: components['schemas']['User'];
+      readonly comment?: components['schemas']['Comment'];
+    };
+    readonly DiffSegment: {
+      readonly type: components['schemas']['LineType'];
+      readonly lines: readonly {
+        readonly line: number;
+        readonly source: number;
+        readonly destination: number;
+      }[];
+    };
+    readonly DiffHunk: {
+      readonly sourceLine: number;
+      readonly sourceSpan: number;
+      readonly destinationLine: number;
+      readonly destinationSpan: number;
+      readonly segments: readonly components['schemas']['DiffSegment'][];
+    };
+    readonly DiffPath: {
+      readonly toString?: string;
+    };
+    readonly DiffEntry: {
+      readonly source?: components['schemas']['DiffPath'];
+      readonly destination?: components['schemas']['DiffPath'];
+      readonly hunks?: readonly components['schemas']['DiffHunk'][];
+    };
+    readonly Diff: {
+      readonly diffs: readonly components['schemas']['DiffEntry'][];
+      readonly truncated?: boolean;
+    };
+    readonly SearchHitFile: {
+      readonly path: string;
+      readonly name: string;
+    };
+    readonly SearchHitContext: {
+      readonly context: string;
+    };
+    readonly SearchHit: {
+      readonly file?: components['schemas']['SearchHitFile'];
+      readonly pathMatches?: readonly unknown[];
+      readonly hitContexts?: readonly components['schemas']['SearchHitContext'][];
+    };
+    readonly SearchResult: {
+      readonly query: string;
+      readonly limit: number;
+      readonly count: number;
+      readonly values: readonly components['schemas']['SearchHit'][];
+    };
+    readonly PagedResponseMeta: {
+      readonly size: number;
+      readonly limit: number;
+      readonly start: number;
+      readonly isLastPage: boolean;
+      readonly nextPageStart?: number;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    readonly getBlockerComments: {
-        readonly parameters: {
-            readonly query?: {
-                /** @description Filter tasks by state (OPEN or RESOLVED); omit for all states */
-                readonly state?: "OPEN" | "RESOLVED";
-                /** @description Maximum results per page */
-                readonly limit?: number;
-                /** @description Pagination offset */
-                readonly start?: number;
-            };
-            readonly header?: never;
-            readonly path: {
-                /** @description Project key */
-                readonly project: string;
-                /** @description Repository slug */
-                readonly repo: string;
-                /** @description Pull request ID */
-                readonly prId: number;
-            };
-            readonly cookie?: never;
-        };
-        readonly requestBody?: never;
-        readonly responses: {
-            /** @description Paginated list of BLOCKER comments */
-            readonly 200: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": components["schemas"]["PagedResponseMeta"] & {
-                        readonly values: readonly components["schemas"]["Comment"][];
-                    };
-                };
-            };
-            /** @description Pull request not found or endpoint not supported (Server/DC < 7.2) */
-            readonly 404: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  readonly getBlockerComments: {
+    readonly parameters: {
+      readonly query?: {
+        /** @description Filter tasks by state (OPEN or RESOLVED); omit for all states */
+        readonly state?: 'OPEN' | 'RESOLVED';
+        /** @description Maximum results per page */
+        readonly limit?: number;
+        /** @description Pagination offset */
+        readonly start?: number;
+      };
+      readonly header?: never;
+      readonly path: {
+        /** @description Project key */
+        readonly project: string;
+        /** @description Repository slug */
+        readonly repo: string;
+        /** @description Pull request ID */
+        readonly prId: number;
+      };
+      readonly cookie?: never;
     };
-    readonly getPullRequestReview: {
-        readonly parameters: {
-            readonly query?: {
-                /** @description Maximum results per page */
-                readonly limit?: number;
-                /** @description Pagination offset */
-                readonly start?: number;
-            };
-            readonly header?: never;
-            readonly path: {
-                /** @description Project key */
-                readonly project: string;
-                /** @description Repository slug */
-                readonly repo: string;
-                /** @description Pull request ID */
-                readonly prId: number;
-            };
-            readonly cookie?: never;
+    readonly requestBody?: never;
+    readonly responses: {
+      /** @description Paginated list of BLOCKER comments */
+      readonly 200: {
+        headers: {
+          readonly [name: string]: unknown;
         };
-        readonly requestBody?: never;
-        readonly responses: {
-            /** @description Paginated list of pending comment threads */
-            readonly 200: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": components["schemas"]["PagedResponseMeta"] & {
-                        readonly values: readonly components["schemas"]["Comment"][];
-                    };
-                };
-            };
-            /** @description Pull request not found or endpoint not supported (Server/DC < 7.7) */
-            readonly 404: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content: {
+          readonly 'application/json': components['schemas']['PagedResponseMeta'] & {
+            readonly values: readonly components['schemas']['Comment'][];
+          };
         };
+      };
+      /** @description Pull request not found or endpoint not supported (Server/DC < 7.2) */
+      readonly 404: {
+        headers: {
+          readonly [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
-    readonly publishPullRequestReview: {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path: {
-                /** @description Project key */
-                readonly project: string;
-                /** @description Repository slug */
-                readonly repo: string;
-                /** @description Pull request ID */
-                readonly prId: number;
-            };
-            readonly cookie?: never;
-        };
-        readonly requestBody: {
-            readonly content: {
-                readonly "application/json": components["schemas"]["PublishReviewRequest"];
-            };
-        };
-        readonly responses: {
-            /** @description Review published */
-            readonly 200: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content: {
-                    readonly "application/json": components["schemas"]["PublishReviewResult"];
-                };
-            };
-            /** @description Missing request body or invalid participant status */
-            readonly 400: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No review in progress for the caller, or PR not found */
-            readonly 404: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  readonly getPullRequestReview: {
+    readonly parameters: {
+      readonly query?: {
+        /** @description Maximum results per page */
+        readonly limit?: number;
+        /** @description Pagination offset */
+        readonly start?: number;
+      };
+      readonly header?: never;
+      readonly path: {
+        /** @description Project key */
+        readonly project: string;
+        /** @description Repository slug */
+        readonly repo: string;
+        /** @description Pull request ID */
+        readonly prId: number;
+      };
+      readonly cookie?: never;
     };
-    readonly discardPullRequestReview: {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path: {
-                /** @description Project key */
-                readonly project: string;
-                /** @description Repository slug */
-                readonly repo: string;
-                /** @description Pull request ID */
-                readonly prId: number;
-            };
-            readonly cookie?: never;
+    readonly requestBody?: never;
+    readonly responses: {
+      /** @description Paginated list of pending comment threads */
+      readonly 200: {
+        headers: {
+          readonly [name: string]: unknown;
         };
-        readonly requestBody?: never;
-        readonly responses: {
-            /** @description Review discarded */
-            readonly 204: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Pull request not found or endpoint not supported (Server/DC < 7.7) */
-            readonly 404: {
-                headers: {
-                    readonly [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content: {
+          readonly 'application/json': components['schemas']['PagedResponseMeta'] & {
+            readonly values: readonly components['schemas']['Comment'][];
+          };
         };
+      };
+      /** @description Pull request not found or endpoint not supported (Server/DC < 7.7) */
+      readonly 404: {
+        headers: {
+          readonly [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
+  };
+  readonly publishPullRequestReview: {
+    readonly parameters: {
+      readonly query?: never;
+      readonly header?: never;
+      readonly path: {
+        /** @description Project key */
+        readonly project: string;
+        /** @description Repository slug */
+        readonly repo: string;
+        /** @description Pull request ID */
+        readonly prId: number;
+      };
+      readonly cookie?: never;
+    };
+    readonly requestBody: {
+      readonly content: {
+        readonly 'application/json': components['schemas']['PublishReviewRequest'];
+      };
+    };
+    readonly responses: {
+      /** @description Review published */
+      readonly 200: {
+        headers: {
+          readonly [name: string]: unknown;
+        };
+        content: {
+          readonly 'application/json': components['schemas']['PublishReviewResult'];
+        };
+      };
+      /** @description Missing request body or invalid participant status */
+      readonly 400: {
+        headers: {
+          readonly [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No review in progress for the caller, or PR not found */
+      readonly 404: {
+        headers: {
+          readonly [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  readonly discardPullRequestReview: {
+    readonly parameters: {
+      readonly query?: never;
+      readonly header?: never;
+      readonly path: {
+        /** @description Project key */
+        readonly project: string;
+        /** @description Repository slug */
+        readonly repo: string;
+        /** @description Pull request ID */
+        readonly prId: number;
+      };
+      readonly cookie?: never;
+    };
+    readonly requestBody?: never;
+    readonly responses: {
+      /** @description Review discarded */
+      readonly 204: {
+        headers: {
+          readonly [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Pull request not found or endpoint not supported (Server/DC < 7.7) */
+      readonly 404: {
+        headers: {
+          readonly [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
 }
